@@ -245,6 +245,8 @@ export class TasksService {
   }
 
   async remove(id: string, userId: string) {
+    console.log(`[DELETE] Starting delete for task ${id} by user ${userId}`);
+    
     // First, check if task exists
     const task = await this.prisma.task.findUnique({
       where: { id },
@@ -258,15 +260,20 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
+    console.log(`[DELETE] Found task with ${task.comments.length} comments and ${task.subtasks.length} subtasks`);
+
     // Delete all comments associated with this task
     if (task.comments.length > 0) {
-      await this.prisma.comment.deleteMany({
+      console.log(`[DELETE] Deleting ${task.comments.length} comments for task ${id}`);
+      const deleteResult = await this.prisma.comment.deleteMany({
         where: { task_id: id },
       });
+      console.log(`[DELETE] Deleted ${deleteResult.count} comments`);
     }
 
     // Delete all subtasks
     if (task.subtasks.length > 0) {
+      console.log(`[DELETE] Deleting ${task.subtasks.length} subtasks`);
       await this.prisma.task.deleteMany({
         where: { parent_task_id: id },
       });
@@ -276,6 +283,8 @@ export class TasksService {
     const deletedTask = await this.prisma.task.delete({
       where: { id },
     });
+
+    console.log(`[DELETE] Task ${id} deleted successfully`);
 
     // Log activity
     await this.activityLog.logTaskDeleted(userId, id, task.title);

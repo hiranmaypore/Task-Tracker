@@ -109,7 +109,7 @@ model Comment {
   content    String
   created_at DateTime @default(now())
 
-  task Task @relation(fields: [task_id], references: [id])
+  task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
 }
 
