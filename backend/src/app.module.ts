@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RoutesController } from './routes.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -86,7 +87,7 @@ import { redisStore } from 'cache-manager-redis-yet';
     AutomationModule,
     CalendarModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, RoutesController],
   providers: [
     AppService,
     {
