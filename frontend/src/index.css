@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+
+@layer base {
+  :root {
+    /* Retro cream background with warmth */
+    --background: 45 30% 94%;
+    --foreground: 30 10% 15%;
+
+    /* Cards - slightly lighter cream */
+    --card: 45 35% 96%;
+    --card-foreground: 30 10% 15%;
+
+    --popover: 45 35% 96%;
+    --popover-foreground: 30 10% 15%;
+
+    /* Primary - Bold Orange/Amber */
+    --primary: 30 90% 45%;
+    --primary-foreground: 45 30% 98%;
+
+    /* Secondary - Forest Teal */
+    --secondary: 170 40% 35%;
+    --secondary-foreground: 45 30% 98%;
+
+    /* Muted - Warm Gray */
+    --muted: 40 15% 88%;
+    --muted-foreground: 30 10% 40%;
+
+    /* Accent - Bright Yellow */
+    --accent: 48 95% 55%;
+    --accent-foreground: 30 10% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 40 20% 82%;
+    --input: 40 20% 85%;
+    --ring: 30 90% 45%;
+
+    --radius: 0.25rem;
+
+    /* Custom tokens */
+    --dot-pattern: radial-gradient(circle, hsl(40, 20%, 75%) 1px, transparent 1px);
+    --retro-shadow: 4px 4px 0px hsl(30, 10%, 15%);
+    --retro-shadow-sm: 2px 2px 0px hsl(30, 10%, 15%);
+    --retro-shadow-accent: 4px 4px 0px hsl(30, 90%, 30%);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 30 15% 10%;
+    --foreground: 45 30% 94%;
+
+    --card: 30 15% 13%;
+    --card-foreground: 45 30% 94%;
+
+    --popover: 30 15% 13%;
+    --popover-foreground: 45 30% 94%;
+
+    --primary: 30 90% 50%;
+    --primary-foreground: 30 10% 10%;
+
+    --secondary: 170 40% 30%;
+    --secondary-foreground: 45 30% 98%;
+
+    --muted: 30 15% 20%;
+    --muted-foreground: 40 15% 65%;
+
+    --accent: 48 95% 55%;
+    --accent-foreground: 30 10% 10%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 15% 25%;
+    --input: 30 15% 25%;
+    --ring: 30 90% 50%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Space Mono', monospace;
+    background-image: var(--dot-pattern);
+    background-size: 20px 20px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'VT323', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+}
+
+@layer components {
+  .retro-button {
+    @apply inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all duration-150;
+    font-family: 'Space Mono', monospace;
+    box-shadow: var(--retro-shadow);
+  }
+
+  .retro-button:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px hsl(30, 10%, 15%);
+  }
+
+  .retro-button:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+  }
+
+  .retro-button-primary {
+    @apply retro-button bg-accent text-accent-foreground border-2 border-foreground;
+  }
+
+  .retro-button-secondary {
+    @apply retro-button bg-card text-foreground border-2 border-foreground;
+  }
+
+  .retro-card {
+    @apply bg-card border-2 border-foreground p-6;
+    box-shadow: var(--retro-shadow);
+  }
+
+  .pixel-heading {
+    @apply text-primary;
+    text-shadow: 3px 3px 0px hsl(30, 90%, 30%);
+  }
+
+  .feature-icon {
+    @apply w-16 h-16 flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground;
+    box-shadow: var(--retro-shadow-sm);
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+}
