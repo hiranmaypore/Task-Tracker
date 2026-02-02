@@ -11,6 +11,8 @@ import { MailService } from '../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as cacheManager_1 from 'cache-manager';
 
+import { AutomationService } from '../automation/automation.service';
+
 @Injectable()
 export class TasksService {
   constructor(
@@ -20,6 +22,7 @@ export class TasksService {
     private remindersService: RemindersService,
     private mailService: MailService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
+    private automationService: AutomationService,
   ) {}
 
   private async invalidateUserCache(userId: string) {
@@ -39,8 +42,10 @@ export class TasksService {
     }
   }
 
+  // ... (keep private methods)
+
   async create(createTaskDto: CreateTaskDto, userId: string) {
-    // 1. Validate that the project exists
+    // ... (existing code up to db creation)
     const project = await this.prisma.project.findUnique({
       where: { id: createTaskDto.project_id },
     });
@@ -49,22 +54,13 @@ export class TasksService {
       throw new NotFoundException('Project not found');
     }
 
-    // 2. If subtask, validate parent
     if (createTaskDto.parent_task_id) {
-      const parentTask = await this.prisma.task.findUnique({
-        where: { id: createTaskDto.parent_task_id },
-      });
-
-      if (!parentTask) {
-        throw new NotFoundException('Parent task not found');
-      }
-
-      if (parentTask.project_id !== createTaskDto.project_id) { 
-           throw new BadRequestException('Subtask must belong to the same project as parent task');
-      }
+       // ... existing validation
+       const parentTask = await this.prisma.task.findUnique({ where: { id: createTaskDto.parent_task_id } });
+       if (!parentTask) throw new NotFoundException('Parent task not found');
+       if (parentTask.project_id !== createTaskDto.project_id) throw new BadRequestException('Subtask mismatch');
     }
 
-    // 3. Create Task
     const task = await this.prisma.task.create({
       data: {
         title: createTaskDto.title,
@@ -82,23 +78,30 @@ export class TasksService {
       },
     });
 
-    // 4. Log activity
     await this.activityLog.logTaskCreated(userId, task.id, task.title);
-
-    // 5. Emit Event
     this.eventsGateway.emitTaskCreated(task.project_id, task);
 
-    // 6. Schedule Reminder
     if (task.due_date) {
       await this.remindersService.scheduleReminder(task.id, task.project_id, userId, task.due_date);
     }
 
-    // 7. Send Email
     if (task.assignee && task.assignee.email) {
        await this.mailService.sendTaskAssignedEmail(userId, task.assignee.email, task.title, task.project.name);
     }
 
-    // 8. Invalidate Cache
+    // TRIGGER AUTOMATION
+    this.automationService.processEvent({
+      type: 'TASK_CREATED',
+      userId: userId,
+      taskId: task.id,
+      task: task,
+      metadata: {
+        priority: task.priority,
+        status: task.status,
+        projectId: task.project_id
+      }
+    });
+
     await this.invalidateUserCache(userId);
     if (task.assignee_id && task.assignee_id !== userId) {
         await this.invalidateUserCache(task.assignee_id);
@@ -230,6 +233,21 @@ export class TasksService {
 
     // Emit Event
     this.eventsGateway.emitTaskUpdated(updatedTask.project_id, updatedTask);
+
+    // TRIGGER AUTOMATION
+    if (updateTaskDto.status === 'DONE' && oldTask.status !== 'DONE') {
+         this.automationService.processEvent({
+            type: 'TASK_COMPLETED',
+            userId: userId,
+            taskId: updatedTask.id,
+            task: updatedTask,
+            metadata: {
+              priority: updatedTask.priority,
+              status: updatedTask.status,
+              projectId: updatedTask.project_id
+            }
+         });
+    }
 
     // Invalidate
     await this.invalidateUserCache(userId);

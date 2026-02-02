@@ -48,6 +48,7 @@ model User {
   activity_logs  ActivityLog[]
   events         Event[]
   automation_rules AutomationRule[]
+  notifications    Notification[]
   
   // Google Calendar Sync
   googleAccessToken   String?
@@ -148,4 +149,16 @@ model AutomationRule {
   updatedAt  DateTime @updatedAt
 
   owner      User     @relation(fields: [ownerId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
 }

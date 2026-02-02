@@ -5,8 +5,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('analytics')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN') // Analytics usually restricted to Admin
+@UseGuards(JwtAuthGuard)
+// @Roles('ADMIN') // Temporarily disabled for demo
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

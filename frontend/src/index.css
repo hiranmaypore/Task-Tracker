@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap");
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
@@ -38,13 +39,13 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
-  
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+
 
 @layer base {
   :root {
@@ -85,7 +86,11 @@
     --radius: 0.25rem;
 
     /* Custom tokens */
-    --dot-pattern: radial-gradient(circle, hsl(40, 20%, 75%) 1px, transparent 1px);
+    --dot-pattern: radial-gradient(
+      circle,
+      hsl(40, 20%, 75%) 1px,
+      transparent 1px
+    );
     --retro-shadow: 4px 4px 0px hsl(30, 10%, 15%);
     --retro-shadow-sm: 2px 2px 0px hsl(30, 10%, 15%);
     --retro-shadow-accent: 4px 4px 0px hsl(30, 90%, 30%);
@@ -143,7 +148,7 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
-    border-style: solid; 
+    border-style: solid;
     border-width: 0;
   }
 
@@ -152,13 +157,18 @@
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-family: 'Space Mono', monospace;
+    font-family: "Space Mono", monospace;
     background-image: var(--dot-pattern);
     background-size: 20px 20px;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'VT323', monospace;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "VT323", monospace;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
@@ -175,8 +185,8 @@
     text-transform: uppercase;
     letter-spacing: 0.05em; /* tracking-wider */
     transition: all 150ms;
-    
-    font-family: 'Space Mono', monospace;
+
+    font-family: "Space Mono", monospace;
     box-shadow: var(--retro-shadow);
   }
 
@@ -206,15 +216,15 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     transition: all 150ms;
-    font-family: 'Space Mono', monospace;
+    font-family: "Space Mono", monospace;
     box-shadow: var(--retro-shadow);
-    
+
     /* Specifics */
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
     border: 2px solid hsl(var(--foreground));
   }
-  
+
   .retro-button-secondary {
     display: inline-flex;
     align-items: center;
@@ -224,7 +234,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     transition: all 150ms;
-    font-family: 'Space Mono', monospace;
+    font-family: "Space Mono", monospace;
     box-shadow: var(--retro-shadow);
 
     background-color: hsl(var(--card));
@@ -266,8 +276,13 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .animate-pulse-slow {
@@ -275,7 +290,12 @@
   }
 
   @keyframes pulse-slow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 }

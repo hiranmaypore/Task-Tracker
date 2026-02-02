@@ -7,6 +7,8 @@ import Index from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
+import Automation from "./pages/Automation";
+import AdminDashboard from "./pages/AdminDashboard";
 import Settings from "./pages/Settings";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -32,7 +34,10 @@ const App = () => (
           <Route element={<PrivateRoute />}>
              <Route path="/dashboard" element={<Dashboard />} />
              <Route path="/projects" element={<Projects />} />
+             <Route path="/projects/:id" element={<Tasks />} />
              <Route path="/tasks" element={<Tasks />} />
+             <Route path="/automation" element={<Automation />} />
+             <Route path="/admin" element={<AdminDashboard />} />
              <Route path="/settings" element={<Settings />} />
           </Route>
 

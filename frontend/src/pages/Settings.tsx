@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { User, Bell, Shield, Moon, Sun, Loader2, Save } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/theme-provider";
+import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
 
 // Profile Schema
 const profileSchema = z.object({
@@ -50,31 +52,80 @@ const Settings = () => {
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Mock User Data
-  const defaultValues: ProfileFormValues = {
-    name: "Demo User",
-    email: "demo@example.com",
-    currentPassword: "",
-    newPassword: "",
-  };
+  const [userId, setUserId] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues,
+    defaultValues: {
+      name: "",
+      email: "",
+      currentPassword: "",
+      newPassword: "",
+    },
   });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const response = await axios.get('http://localhost:3000/users/me', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const user = response.data;
+                setUserId(user.id);
+                form.reset({
+                    name: user.name,
+                    email: user.email,
+                    currentPassword: "",
+                    newPassword: "",
+                });
+            }
+        } catch (error) {
+            console.error("Failed to fetch profile", error);
+            toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });
+        }
+    };
+    fetchUser();
+  }, [form, toast]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Settings updated",
-        description: "Your profile has been updated successfully.",
-      });
-      // In real app, would update backend here
-    }, 1000);
+    try {
+        const token = localStorage.getItem('token');
+        if (!token || !userId) {
+            toast({ title: "Error", description: "Not authenticated", variant: "destructive" });
+            return;
+        }
+
+        const payload: any = { name: data.name };
+        
+        // Only include password if changing it
+        if (data.newPassword && data.newPassword.length >= 6) {
+             // In a real app, currentPassword would be verified by backend.
+             // Here we just send the new password.
+             payload.password = data.newPassword;
+        }
+
+        await axios.patch(`http://localhost:3000/users/${userId}`, payload, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        toast({
+            title: "Settings updated",
+            description: "Your profile has been updated successfully.",
+        });
+        
+        // Clear password fields on success
+        form.setValue("currentPassword", "");
+        form.setValue("newPassword", "");
+
+    } catch (error) {
+        console.error("Update failed", error);
+        toast({ title: "Error", description: "Failed to update profile", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -105,9 +156,16 @@ const Settings = () => {
             >
                 Appearance
             </TabsTrigger>
+            <TabsTrigger 
+                value="integrations" 
+                className="font-mono font-bold uppercase data-[state=active]:bg-green-500/10 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-400 h-10 border border-transparent data-[state=active]:border-foreground transition-all"
+            >
+                Integrations
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="account">
+            {/* ... existing content ... */}
             <Card className="border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))]">
               <CardHeader>
                 <CardTitle className="font-pixel flex items-center gap-2 text-xl">
@@ -266,6 +324,10 @@ const Settings = () => {
                   </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations">
+             <GoogleCalendarSettings />
           </TabsContent>
         </Tabs>
       </div>

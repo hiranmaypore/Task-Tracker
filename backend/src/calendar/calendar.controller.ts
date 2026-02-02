@@ -23,10 +23,10 @@ export class CalendarController {
    * Google redirects here after user authorizes
    */
   @Get('callback')
-  @Redirect('http://localhost:3000/calendar/success', 302)
+  @Redirect('http://localhost:8080/settings?google_sync=success', 302)
   async handleCallback(@Query('code') code: string, @User() user: any) {
     await this.calendarService.handleCallback(code, user.userId);
-    return { url: '/calendar/success' }; // Redirect to success page
+    return { url: 'http://localhost:8080/settings?google_sync=success' };
   }
 
   /**

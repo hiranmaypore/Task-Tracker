@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Folder, MoreVertical, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -81,6 +81,7 @@ const MOCK_PROJECTS: Project[] = [
 ];
 
 const Projects = () => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -93,6 +94,27 @@ const Projects = () => {
       description: "",
     },
   });
+
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  // Reset form when dialog opens/closes or editingProject changes
+  useEffect(() => {
+    if (isDialogOpen) {
+      if (editingProject) {
+        form.reset({
+          name: editingProject.name,
+          description: editingProject.description || "",
+        });
+      } else {
+        form.reset({
+          name: "",
+          description: "",
+        });
+      }
+    } else {
+      setEditingProject(null); // Clear editing state when dialog closes
+    }
+  }, [isDialogOpen, editingProject, form]);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -120,34 +142,78 @@ const Projects = () => {
   const onSubmit = async (data: ProjectFormValues) => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        await axios.post('http://localhost:3000/projects', data, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast({ title: "Success", description: "Project created successfully" });
-        fetchProjects(); // Refresh list
+      
+      if (editingProject) {
+        // Update Logic
+        if (token) {
+           await axios.patch(`http://localhost:3000/projects/${editingProject.id}`, data, {
+             headers: { Authorization: `Bearer ${token}` }
+           });
+           toast({ title: "Success", description: "Project updated successfully" });
+           fetchProjects();
+        } else {
+           // Offline Mock Update
+           setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...p, ...data } : p));
+           toast({ title: "Offline Mode", description: "Project updated locally" });
+        }
       } else {
-        // Correctly structured mock project for offline mode
-        const newProject: Project = {
-            id: Math.random().toString(),
-            name: data.name,
-            description: data.description || null,
-            created_at: new Date().toISOString(),
-            _count: { tasks: 0, members: 1 },
-            role: "OWNER"
-        };
-        setProjects([newProject, ...projects]);
-        toast({ title: "Offline Mode", description: "Project created locally" });
+        // Create Logic
+        if (token) {
+          await axios.post('http://localhost:3000/projects', data, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          toast({ title: "Success", description: "Project created successfully" });
+          fetchProjects(); 
+        } else {
+          // Offline Mock Create
+          const newProject: Project = {
+              id: Math.random().toString(),
+              name: data.name,
+              description: data.description || null,
+              created_at: new Date().toISOString(),
+              _count: { tasks: 0, members: 1 },
+              role: "OWNER"
+          };
+          setProjects([newProject, ...projects]);
+          toast({ title: "Offline Mode", description: "Project created locally" });
+        }
       }
       setIsDialogOpen(false);
-      form.reset();
     } catch (error) {
       toast({ 
         variant: "destructive", 
         title: "Error", 
-        description: "Failed to create project" 
+        description: editingProject ? "Failed to update project" : "Failed to create project" 
       });
     }
+  };
+
+  const handleEditClick = (project: Project) => {
+      setEditingProject(project);
+      setIsDialogOpen(true);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+            await axios.delete(`http://localhost:3000/projects/${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast({ title: "Success", description: "Project deleted successfully" });
+            fetchProjects();
+        } else {
+            // Offline Mock Delete
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+            toast({ title: "Offline Mode", description: "Project deleted locally", variant: "destructive" });
+        }
+      } catch (error) {
+          toast({ 
+            variant: "destructive", 
+            title: "Error", 
+            description: "Failed to delete project" 
+          });
+      }
   };
 
   const container = {
@@ -180,9 +246,9 @@ const Projects = () => {
             </DialogTrigger>
             <DialogContent className="border-2 border-foreground shadow-[8px_8px_0px_hsl(var(--foreground))]">
               <DialogHeader>
-                <DialogTitle className="font-pixel text-xl">Create New Project</DialogTitle>
+                <DialogTitle className="font-pixel text-xl">{editingProject ? "Edit Project" : "Create New Project"}</DialogTitle>
                 <DialogDescription className="font-mono text-xs">
-                  Add a new space for your team to collaborate.
+                  {editingProject ? "Update your project details." : "Add a new space for your team to collaborate."}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -223,7 +289,7 @@ const Projects = () => {
                   />
                   <DialogFooter>
                     <Button type="submit" className="w-full font-bold uppercase bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:shadow-none transition-all">
-                      Create Project
+                      {editingProject ? "Save Changes" : "Create Project"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -248,7 +314,10 @@ const Projects = () => {
             <AnimatePresence>
               {projects.map((project) => (
                 <motion.div key={project.id} variants={item} layout>
-                  <Card className="h-full flex flex-col border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0px_hsl(var(--foreground))] transition-all duration-300 group cursor-pointer relative overflow-hidden bg-card">
+                  <Card 
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                        className="h-full flex flex-col border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:-translate-y-1 hover:shadow-[6px_6px_0px_hsl(var(--foreground))] transition-all duration-300 group cursor-pointer relative overflow-hidden bg-card"
+                    >
                     {/* Decorative stripe */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary via-accent to-secondary" />
                     
@@ -259,13 +328,18 @@ const Projects = () => {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 -mr-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="border-2 border-foreground">
-                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer">Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer text-destructive">Delete</DropdownMenuItem>
+                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer" onClick={() => handleEditClick(project)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => handleDeleteProject(project.id)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                        </div>

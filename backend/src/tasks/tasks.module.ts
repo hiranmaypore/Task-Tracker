@@ -5,8 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectRoleGuard } from '../auth/guards/project-role.guard';
 import { TaskRoleGuard } from '../auth/guards/task-role.guard';
 
+import { AutomationModule } from '../automation/automation.module';
+
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AutomationModule],
   controllers: [TasksController],
   providers: [
     TasksService,

@@ -16,6 +16,7 @@ import { RemindersModule } from './reminders/reminders.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MailModule } from './mail/mail.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AutomationModule } from './automation/automation.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -85,6 +86,7 @@ import { redisStore } from 'cache-manager-redis-yet';
     MailModule,
     AnalyticsModule,
     AutomationModule,
+    NotificationsModule,
     CalendarModule,
   ],
   controllers: [AppController, RoutesController],

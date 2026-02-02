@@ -12,10 +12,13 @@ import {
   User,
   Search,
   Sun,
-  Moon
+  Moon,
+  Bot,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificationCenter } from "./NotificationCenter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/theme-provider";
 
@@ -36,9 +39,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Folder, label: "Projects", path: "/projects" },
     { icon: CheckSquare, label: "My Tasks", path: "/tasks" },
+    { icon: Bot, label: "Automation", path: "/automation" },
+    { icon: TrendingUp, label: "Admin Analytics", path: "/admin" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
@@ -128,7 +133,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                  </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -137,16 +142,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 >
                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
                 </Button>
-
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border border-background"></span>
-                </Button>
-                <div className="w-8 h-8 rounded-full bg-accent border-2 border-foreground flex items-center justify-center">
-                    <User className="h-4 w-4 text-accent-foreground" />
-                </div>
-            </div>
+                
+                <NotificationCenter />
+                
+                <Link to="/settings">
+                  <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 border-2 border-transparent hover:border-foreground/20">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
         </header>
 
         {/* Mobile Menu Overlay */}

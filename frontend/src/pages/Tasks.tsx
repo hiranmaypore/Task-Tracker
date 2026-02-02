@@ -3,22 +3,26 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  Filter, 
-  Plus, 
+import {
+  Plus,
   Search,
-  MoreHorizontal,
-  Calendar as CalendarIcon,
+  Filter,
   LayoutList,
-  LayoutGrid
+  LayoutGrid,
+  Calendar as CalendarIcon,
+  MoreVertical,
+  Flag,
+  CheckCircle2,
+  Circle,
+  MoreHorizontal,
+  Clock,
 } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { CalendarView } from "@/components/CalendarView";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +30,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { TaskComments } from "@/components/TaskComments";
 import {
   Dialog,
   DialogContent,
@@ -57,86 +68,95 @@ interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  project_id: string;
   project?: {
     name: string;
   };
 }
 
-// Mock Data
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    title: "Design Homepage Hero Section",
-    description: "Create high-fidelity mockups for the new landing page hero.",
-    status: "IN_PROGRESS",
-    priority: "HIGH",
-    due_date: new Date(Date.now() + 86400000).toISOString(),
-    project: { name: "Website Redesign" }
-  },
-  {
-    id: "2",
-    title: "Setup Analytics",
-    description: "Integrate Google Analytics 4 property.",
-    status: "TODO",
-    priority: "MEDIUM",
-    due_date: new Date(Date.now() + 86400000 * 3).toISOString(),
-    project: { name: "Website Redesign" }
-  },
-  {
-    id: "3",
-    title: "Review Q3 Marketing Plan",
-    description: null,
-    status: "DONE",
-    priority: "HIGH",
-    due_date: new Date(Date.now() - 86400000).toISOString(),
-    project: { name: "Mobile App Launch" }
-  },
-  {
-    id: "4",
-    title: "Update Dependencies",
-    description: "Run npm audit fix and update packages.",
-    status: "TODO",
-    priority: "LOW",
-    due_date: null,
-  }
-];
+interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
-// Add Task Schema
-const createTaskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+const taskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100),
   description: z.string().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
-  due_date: z.string().optional(), // In real app, might want a date picker
+  due_date: z.string().optional(),
+  project_id: z.string().min(1, "Project is required"),
 });
-type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
+type TaskFormValues = z.infer<typeof taskSchema>;
 
 const Tasks = () => {
+  const { id: projectId } = useParams();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]); // All user projects
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"LIST" | "BOARD">("LIST");
+  const [viewMode, setViewMode] = useState<"LIST" | "BOARD" | "CALENDAR">("LIST");
   const { toast } = useToast();
 
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      due_date: "",
+      project_id: projectId || "",
+    },
+  });
+
+  // Fetch all projects for the dropdown
+  useEffect(() => {
+      const fetchProjects = async () => {
+          try {
+              const token = localStorage.getItem('token');
+              if (token) {
+                  const response = await axios.get('http://localhost:3000/projects', {
+                      headers: { Authorization: `Bearer ${token}` }
+                  });
+                  setProjects(response.data);
+                  
+                  // If we are in "My Tasks" view (no projectId param) and have projects, default to first
+                  if (!projectId && response.data.length > 0) {
+                      form.setValue('project_id', response.data[0].id);
+                  }
+              }
+          } catch (error) {
+              console.error("Failed to fetch projects");
+          }
+      };
+      
+      fetchProjects();
+  }, [projectId, form]); 
+
   const handleTaskUpdate = (updatedTask: Task) => {
     // Optimistic update
     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-    
-    // In a real app, send to backend here
-    // axios.patch(/tasks/${updatedTask.id}, updatedTask)
+
+    const token = localStorage.getItem('token');
+    if (token) {
+         axios.patch(`http://localhost:3000/tasks/${updatedTask.id}`, updatedTask, {
+             headers: { Authorization: `Bearer ${token}` }
+         }).catch(() => {
+             toast({ title: "Update failed", variant: "destructive" });
+         });
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-      // Optimistic delete
       setTasks(prev => prev.filter(t => t.id !== taskId));
-      
       toast({
         title: "Task deleted",
         description: "The task has been permanently removed.",
-        variant: "destructive" 
       });
 
       try {
@@ -148,19 +168,8 @@ const Tasks = () => {
         }
       } catch (error) {
           console.error("Failed to delete task", error);
-          // Ideally revert optimistic update here if needed
       }
   };
-
-  const form = useForm<CreateTaskFormValues>({
-    resolver: zodResolver(createTaskSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      priority: "MEDIUM",
-      due_date: "",
-    },
-  });
 
   // Effect to reset form when dialog opens/closes
   useEffect(() => {
@@ -186,80 +195,102 @@ const Tasks = () => {
   }, [isDialogOpen, editingTask, form]);
 
   useEffect(() => {
+    const fetchProject = async () => {
+       if (!projectId) {
+           setProject(null);
+           return;
+       }
+       try {
+          const token = localStorage.getItem('token');
+          if (token) {
+              const response = await axios.get(`http://localhost:3000/projects/${projectId}`, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              setProject(response.data);
+          }
+       } catch (error) {
+           console.error("Failed to fetch project");
+       }
+    };
+
     const fetchTasks = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error("No token");
 
-        const response = await axios.get('http://localhost:3000/tasks', {
-          headers: { Authorization: `Bearer ${token}` }
+        let url = 'http://localhost:3000/tasks';
+        const params: any = {};
+        
+        if (projectId) {
+            params.project_id = projectId;
+        }
+
+        const response = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          params
         });
         setTasks(response.data);
       } catch (error) {
-        // Fallback or verify if using mock data in offline mode
         console.log("Using mock tasks data");
-        // Simulate network delay
-        setTimeout(() => {
-             setTasks(MOCK_TASKS);
-        }, 500);
+        setTasks([]);
       } finally {
-        if (loading) setLoading(false);
+        setLoading(false);
       }
     };
 
+    fetchProject();
     fetchTasks();
-  }, []);
+  }, [projectId]);
 
   const openEditDialog = (task: Task) => {
       setEditingTask(task);
       setIsDialogOpen(true);
   };
 
-  const onSubmit = async (data: CreateTaskFormValues) => {
+  const onSubmit = async (data: TaskFormValues) => {
     try {
       if (editingTask) {
            // Update existing
            const updatedTask = { ...editingTask, ...data, due_date: data.due_date ? new Date(data.due_date).toISOString() : null };
            handleTaskUpdate(updatedTask);
-           toast({
-             title: "Task updated!",
-             description: "Your task has been modified.",
-           });
+           toast({ title: "Task updated!" });
       } else {
           // Create new
-          const newTask: Task = {
-            id: Math.random().toString(),
-            title: data.title,
-            description: data.description || null,
-            status: "TODO",
-            priority: data.priority,
-            due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
-          };
-          setTasks([newTask, ...tasks]);
-          toast({
-            title: "Task created!",
-            description: "Your new task has been added.",
-          });
+          const token = localStorage.getItem('token');
+          if (token) {
+              const payload = { 
+                  ...data, 
+                  project_id: projectId || "1", // Default to 1 if not provided
+                  due_date: data.due_date ? new Date(data.due_date).toISOString() : null 
+              }; 
+              const response = await axios.post('http://localhost:3000/tasks', payload, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              setTasks([response.data, ...tasks]);
+              toast({ title: "Task created" });
+          } else {
+               // Mock Create
+               const newTask: Task = {
+                    id: Math.random().toString(),
+                    title: data.title,
+                    description: data.description || null,
+                    status: "TODO",
+                    priority: data.priority,
+                    due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
+                    project_id: projectId || "1"
+               };
+               setTasks([newTask, ...tasks]);
+               toast({ title: "Task created locally" });
+          }
       }
-      
       setIsDialogOpen(false);
       form.reset();
-
-      // Try actual backend call (Simplified for demo)
-      const token = localStorage.getItem('token');
-        if (token && !editingTask) { // Only posting new for now in demo
-           await axios.post('http://localhost:3000/tasks', data, {
-             headers: { Authorization: `Bearer ${token}` }
-           });
-        }
     } catch (error) {
-      // Fail silently for offline demo
       console.error("Failed to sync task", error);
+      toast({ title: "Error", description: "Failed to save task", variant: "destructive" });
     }
   };
-
-
 
   // Filtering Logic
   const filteredTasks = tasks.filter(task => {
@@ -291,8 +322,8 @@ const Tasks = () => {
       <div className="space-y-8 max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-pixel text-3xl mb-2">My Tasks</h1>
-            <p className="font-mono text-muted-foreground">Keep track of your daily work.</p>
+            <h1 className="font-pixel text-3xl mb-2">{project ? project.name : "My Tasks"}</h1>
+            <p className="font-mono text-muted-foreground">{project ? (project.description || "Project details.") : "Keep track of your daily work."}</p>
           </div>
           
           <div className="flex items-center gap-2">
@@ -313,6 +344,14 @@ const Tasks = () => {
                 >
                     <LayoutGrid className="h-4 w-4" />
                 </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`h-8 w-8 ${viewMode === "CALENDAR" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setViewMode("CALENDAR")}
+                >
+                    <CalendarIcon className="h-4 w-4" />
+                </Button>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -328,78 +367,211 @@ const Tasks = () => {
                         {editingTask ? "Edit Task" : "New Task"}
                     </DialogTitle>
                  </div>
-                 <div className="p-6">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="font-mono font-bold uppercase text-xs">Title</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g. Update Documentation" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="font-mono font-bold uppercase text-xs">Description</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Optional details..." className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <div className="grid grid-cols-2 gap-4">
+                 
+                 {editingTask ? (
+                    <Tabs defaultValue="details" className="w-full">
+                        <div className="border-b-2 border-foreground px-6 bg-secondary/5">
+                            <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-6">
+                                <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-mono font-bold uppercase text-xs data-[state=active]:text-primary text-muted-foreground transition-all">Details</TabsTrigger>
+                                <TabsTrigger value="comments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-mono font-bold uppercase text-xs data-[state=active]:text-primary text-muted-foreground transition-all">Comments</TabsTrigger>
+                            </TabsList>
+                        </div>
+                        <div className="p-6 pt-4">
+                            <TabsContent value="details" className="mt-0">
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="title"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-mono font-bold uppercase text-xs">Title</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="e.g. Update Documentation" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-mono font-bold uppercase text-xs">Description</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Optional details..." className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                         <FormField
+                                            control={form.control}
+                                            name="project_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-mono font-bold uppercase text-xs">Project</FormLabel>
+                                                    <FormControl>
+                                                        <select
+                                                            disabled={!!projectId}
+                                                            className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all disabled:opacity-50"
+                                                            {...field}
+                                                        >
+                                                            <option value="" disabled>Select Project</option>
+                                                            {projects.map(p => (
+                                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                         />
+                                         <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="priority"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-mono font-bold uppercase text-xs">Priority</FormLabel>
+                                                        <FormControl>
+                                                            <select 
+                                                                className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                                                {...field}
+                                                            >
+                                                                <option value="LOW">Low</option>
+                                                                <option value="MEDIUM">Medium</option>
+                                                                <option value="HIGH">High</option>
+                                                            </select>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="due_date"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-mono font-bold uppercase text-xs">Due Date</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="date" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                         </div>
+                                        <DialogFooter className="pt-4">
+                                            <Button type="submit" className="w-full font-bold uppercase tracking-wider bg-primary text-primary-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all">
+                                                Save Changes
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </TabsContent>
+                            <TabsContent value="comments" className="mt-0">
+                                <TaskComments taskId={editingTask.id} />
+                            </TabsContent>
+                        </div>
+                    </Tabs>
+                 ) : (
+                     <div className="p-6">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                                 <FormField
                                     control={form.control}
-                                    name="priority"
+                                    name="title"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="font-mono font-bold uppercase text-xs">Priority</FormLabel>
+                                            <FormLabel className="font-mono font-bold uppercase text-xs">Title</FormLabel>
                                             <FormControl>
-                                                <select 
-                                                    className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                                <Input placeholder="e.g. Update Documentation" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-mono font-bold uppercase text-xs">Description</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Optional details..." className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="project_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-mono font-bold uppercase text-xs">Project</FormLabel>
+                                            <FormControl>
+                                                <select
+                                                    disabled={!!projectId}
+                                                    className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all disabled:opacity-50"
                                                     {...field}
                                                 >
-                                                    <option value="LOW">Low</option>
-                                                    <option value="MEDIUM">Medium</option>
-                                                    <option value="HIGH">High</option>
+                                                    <option value="" disabled>Select Project</option>
+                                                    {projects.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
                                                 </select>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="due_date"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="font-mono font-bold uppercase text-xs">Due Date</FormLabel>
-                                            <FormControl>
-                                                <Input type="date" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                             </div>
-                            <DialogFooter className="pt-4">
-                                <Button type="submit" className="w-full font-bold uppercase tracking-wider bg-primary text-primary-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all">
-                                    {editingTask ? "Save Changes" : "Create Task"}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="priority"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="font-mono font-bold uppercase text-xs">Priority</FormLabel>
+                                                <FormControl>
+                                                    <select 
+                                                        className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                                        {...field}
+                                                    >
+                                                        <option value="LOW">Low</option>
+                                                        <option value="MEDIUM">Medium</option>
+                                                        <option value="HIGH">High</option>
+                                                    </select>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="due_date"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="font-mono font-bold uppercase text-xs">Due Date</FormLabel>
+                                                <FormControl>
+                                                    <Input type="date" className="font-mono border-2 border-foreground focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                 </div>
+                                <DialogFooter className="pt-4">
+                                    <Button type="submit" className="w-full font-bold uppercase tracking-wider bg-primary text-primary-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all">
+                                        Create Task
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                     </div>
+                 )}
             </DialogContent>
           </Dialog>
           </div>
@@ -452,7 +624,13 @@ const Tasks = () => {
                 onTaskUpdate={handleTaskUpdate} 
                 onEditTask={openEditDialog}
                 onDeleteTask={handleDeleteTask}
-                onTasksReorder={() => {}} // Not implemented yet
+                onTasksReorder={() => {}} 
+             />
+        ) : viewMode === "CALENDAR" ? (
+             <CalendarView
+                tasks={filteredTasks}
+                onEditTask={openEditDialog}
+                onDeleteTask={handleDeleteTask}
              />
         ) : (
              <div className="space-y-3">
@@ -477,7 +655,47 @@ const Tasks = () => {
                             >
                                 <Card className="border-2 border-foreground shadow-[2px_2px_0px_hsl(var(--foreground))] hover:shadow-[4px_4px_0px_hsl(var(--foreground))] transition-all group bg-card">
                                     <div className="p-4 flex items-start gap-4">
-                                        <button className="mt-1 shrink-0 hover:scale-110 transition-transform">
+                                        <button 
+                                            className="mt-1 shrink-0 hover:scale-110 transition-transform focus:outline-none"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newStatus = task.status === "DONE" ? "TODO" : "DONE";
+                                                
+                                                // Optimistically update the UI
+                                                const optimisticTask = { 
+                                                    ...task, 
+                                                    status: newStatus as TaskStatus,
+                                                    completed_at: newStatus === "DONE" ? new Date().toISOString() : null
+                                                };
+                                                setTasks(prev => prev.map(t => t.id === task.id ? optimisticTask : t));
+
+                                                // Send ONLY the fields the backend DTO accepts
+                                                const payload = {
+                                                    status: newStatus as TaskStatus,
+                                                    completed_at: newStatus === "DONE" ? new Date().toISOString() : null
+                                                };
+
+                                                const token = localStorage.getItem('token');
+                                                if (token) {
+                                                    axios.patch(`http://localhost:3000/tasks/${task.id}`, payload, {
+                                                        headers: { Authorization: `Bearer ${token}` }
+                                                    }).catch((err) => {
+                                                        console.error("Failed to update status", err);
+                                                        toast({ title: "Update failed", variant: "destructive" });
+                                                        // Revert on failure
+                                                        setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+                                                    });
+                                                }
+
+                                                if (newStatus === "DONE") {
+                                                    toast({ 
+                                                        title: "Task Completed!", 
+                                                        description: "Great job! Keep it up.",
+                                                        className: "bg-green-50 border-green-200"
+                                                    });
+                                                }
+                                            }}
+                                        >
                                             {getStatusIcon(task.status)}
                                         </button>
                                         <div className="flex-1 min-w-0">
