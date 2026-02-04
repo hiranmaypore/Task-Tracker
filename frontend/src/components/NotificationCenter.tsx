@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Bell, Check, Trash2, MailOpen } from "lucide-react";
 import { format } from "date-fns";
 import { useSocket } from "@/context/SocketContext";
@@ -59,7 +60,7 @@ export function NotificationCenter() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const response = await axios.get('http://localhost:3000/notifications', {
+      const response = await axios.get(`${API_BASE_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(response.data);
@@ -73,7 +74,7 @@ export function NotificationCenter() {
     // ... existing implementation
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`http://localhost:3000/notifications/${id}/read`, {}, {
+      await axios.patch(`${API_BASE_URL}/notifications/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -89,7 +90,7 @@ export function NotificationCenter() {
     // ... existing implementation
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`http://localhost:3000/notifications/read-all`, {}, {
+      await axios.patch(`${API_BASE_URL}/notifications/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

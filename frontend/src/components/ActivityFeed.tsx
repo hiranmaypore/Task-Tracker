@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { motion } from "framer-motion";
 import { 
   FolderPlus, 
@@ -126,7 +127,7 @@ export function ActivityFeed({ limit = 10, showHeader = true }: ActivityFeedProp
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await axios.get(`http://localhost:3000/activity-log/recent?limit=${limit}`, {
+      const response = await axios.get(`${API_BASE_URL}/activity-log/recent?limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

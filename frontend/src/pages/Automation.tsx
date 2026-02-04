@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { 
   Zap, 
   Plus, 
@@ -84,7 +85,7 @@ const Automation = () => {
   const fetchRules = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/automation/rules', {
+      const response = await axios.get(`${API_BASE_URL}/automation/rules`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRules(response.data);
@@ -107,7 +108,7 @@ const Automation = () => {
         enabled: true
       };
 
-      await axios.post('http://localhost:3000/automation/rules', payload, {
+      await axios.post(`${API_BASE_URL}/automation/rules`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -127,7 +128,7 @@ const Automation = () => {
   const deleteRule = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/automation/rules/${id}`, {
+      await axios.delete(`${API_BASE_URL}/automation/rules/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRules(rules.filter(r => r.id !== id));

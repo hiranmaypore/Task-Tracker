@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 
 // Animation variants (reused from Landing.tsx for consistency)
 const ease: Easing = [0.0, 0.0, 0.2, 1];
@@ -71,7 +72,7 @@ const Register = () => {
     try {
       // Assuming backend is running on default port 3000
       // In a real app, use an environment variable for the API URL
-      const response = await axios.post('http://localhost:3000/auth/register', data);
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, data);
       
       toast({
         title: "Account created!",
@@ -220,7 +221,7 @@ const Register = () => {
                     type="button" 
                     variant="outline" 
                     className="w-full border-2 border-foreground font-bold font-mono uppercase hover:bg-muted"
-                    onClick={() => window.location.href = "http://localhost:3000/auth/google"}
+                    onClick={() => window.location.href = `${API_BASE_URL}/auth/google`}
                 >
                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                         <path

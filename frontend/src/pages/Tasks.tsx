@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import {
   Plus,
   Search,
@@ -176,7 +177,7 @@ const Tasks = () => {
           try {
               const token = localStorage.getItem('token');
               if (token) {
-                  const response = await axios.get('http://localhost:3000/projects', {
+                  const response = await axios.get(`${API_BASE_URL}/projects`, {
                       headers: { Authorization: `Bearer ${token}` }
                   });
                   setProjects(response.data);
@@ -197,7 +198,7 @@ const Tasks = () => {
              const token = localStorage.getItem('token');
              if (token) {
                  try {
-                    const res = await axios.get(`http://localhost:3000/projects/${selectedProjectId}/members`, {
+                    const res = await axios.get(`${API_BASE_URL}/projects/${selectedProjectId}/members`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     setProjectMembers(res.data);
@@ -220,7 +221,7 @@ const Tasks = () => {
 
     const token = localStorage.getItem('token');
     if (token) {
-         axios.patch(`http://localhost:3000/tasks/${updatedTask.id}`, updatedTask, {
+         axios.patch(`${API_BASE_URL}/tasks/${updatedTask.id}`, updatedTask, {
              headers: { Authorization: `Bearer ${token}` }
          }).catch(() => {
              toast({ title: "Update failed", variant: "destructive" });
@@ -238,7 +239,7 @@ const Tasks = () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-           await axios.delete(`http://localhost:3000/tasks/${taskId}`, {
+           await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, {
              headers: { Authorization: `Bearer ${token}` }
            });
         }
@@ -283,7 +284,7 @@ const Tasks = () => {
        try {
           const token = localStorage.getItem('token');
           if (token) {
-              const response = await axios.get(`http://localhost:3000/projects/${projectId}`, {
+              const response = await axios.get(`${API_BASE_URL}/projects/${projectId}`, {
                   headers: { Authorization: `Bearer ${token}` }
               });
               setProject(response.data);
@@ -299,7 +300,7 @@ const Tasks = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error("No token");
 
-        let url = 'http://localhost:3000/tasks';
+        let url = `${API_BASE_URL}/tasks`;
         const params: any = {};
         
         if (projectId) {
@@ -357,7 +358,7 @@ const Tasks = () => {
                   project_id: data.project_id,
                   due_date: data.due_date ? new Date(data.due_date).toISOString() : null 
               };
-              const response = await axios.post('http://localhost:3000/tasks', payload, {
+              const response = await axios.post(`${API_BASE_URL}/tasks`, payload, {
                   headers: { Authorization: `Bearer ${token}` }
               });
               setTasks([response.data, ...tasks]);
@@ -609,7 +610,7 @@ const Tasks = () => {
                                                      // Refresh the task to get updated tags
                                                      const token = localStorage.getItem('token');
                                                      if (token) {
-                                                         const response = await axios.get(`http://localhost:3000/tasks/${editingTask.id}`, {
+                                                         const response = await axios.get(`${API_BASE_URL}/tasks/${editingTask.id}`, {
                                                              headers: { Authorization: `Bearer ${token}` }
                                                          });
                                                          setEditingTask(response.data);
@@ -859,7 +860,7 @@ const Tasks = () => {
 
                                                 const token = localStorage.getItem('token');
                                                 if (token) {
-                                                    axios.patch(`http://localhost:3000/tasks/${task.id}`, payload, {
+                                                    axios.patch(`${API_BASE_URL}/tasks/${task.id}`, payload, {
                                                         headers: { Authorization: `Bearer ${token}` }
                                                     }).catch((err) => {
                                                         console.error("Failed to update status", err);

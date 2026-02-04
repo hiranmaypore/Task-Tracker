@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/config";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -42,7 +43,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 // We use a light fetch or rely on what we have. 
                 // Ideally this should be in a context, but we'll fetch for now.
                 // We'll reuse the backend's /users/me endpoint which is efficient.
-                const response = await fetch('http://localhost:3000/users/me', {
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {

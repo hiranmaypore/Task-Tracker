@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { User, Bell, Shield, Moon, Sun, Loader2, Save, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -91,10 +92,10 @@ const Settings = () => {
             const token = localStorage.getItem('token');
             if (token) {
                 const [profileResponse, statsResponse] = await Promise.all([
-                    axios.get('http://localhost:3000/users/me', {
+                    axios.get(`${API_BASE_URL}/users/me`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    axios.get('http://localhost:3000/users/me/stats', {
+                    axios.get(`${API_BASE_URL}/users/me/stats`, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);
@@ -140,7 +141,7 @@ const Settings = () => {
              payload.password = data.newPassword;
         }
 
-        await axios.patch(`http://localhost:3000/users/${userId}`, payload, {
+        await axios.patch(`${API_BASE_URL}/users/${userId}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -174,7 +175,7 @@ const Settings = () => {
       const token = localStorage.getItem('token');
       if (!token || !userId) return;
 
-      await axios.delete(`http://localhost:3000/users/${userId}`, {
+      await axios.delete(`${API_BASE_URL}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -467,7 +468,7 @@ const Settings = () => {
                         onClick={async () => {
                             try {
                                 const token = localStorage.getItem('token');
-                                await axios.get('http://localhost:3000/notifications/test', {
+                                await axios.get(`${API_BASE_URL}/notifications/test`, {
                                     headers: { Authorization: `Bearer ${token}` }
                                 });
                                 // Toast is handled by socket in NotificationCenter, but we can confirm request sent

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Send, User as UserIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -52,7 +53,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-          const response = await axios.get(`http://localhost:3000/comments/task/${taskId}`, {
+          const response = await axios.get(`${API_BASE_URL}/comments/task/${taskId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           setComments(response.data);
@@ -89,7 +90,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
         const token = localStorage.getItem("token");
         
         if (token) {
-            await axios.post(`http://localhost:3000/comments`, {
+            await axios.post(`${API_BASE_URL}/comments`, {
                 task_id: taskId,
                 content: newComment
             }, {

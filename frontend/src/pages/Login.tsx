@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 
 // ... existing variants
 const ease: Easing = [0.0, 0.0, 0.2, 1];
@@ -67,7 +68,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       // Assuming backend is running on default port 3000
-      const response = await axios.post('http://localhost:3000/auth/login', data);
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, data);
       
       // Store token
       localStorage.setItem('token', response.data.access_token);
@@ -90,7 +91,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-      window.location.href = "http://localhost:3000/auth/google";
+      window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   return (

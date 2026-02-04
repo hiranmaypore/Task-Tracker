@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '@/config';
 import { useToast } from "@/hooks/use-toast";
 
 interface SocketContextType {
@@ -29,7 +30,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         return;
     }
 
-    const newSocket = io('http://localhost:3000', {
+    const newSocket = io(SOCKET_URL, {
       auth: {
         token: token,
       },
