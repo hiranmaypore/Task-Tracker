@@ -28,16 +28,20 @@ export class CalendarService {
   /**
    * Generate OAuth URL for user to authorize
    */
-  getAuthUrl(): string {
+  getAuthUrl(userId: string): string {
     const scopes = [
       'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/calendar.events',
     ];
 
+    // Simple state encoding (in production, use signed/encrypted token)
+    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
+
     return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline', // Get refresh token
+      access_type: 'offline',
       scope: scopes,
-      prompt: 'consent', // Force consent to get refresh token
+      prompt: 'consent',
+      state: state,
     });
   }
 
@@ -139,7 +143,7 @@ export class CalendarService {
         throw new Error('Task not found');
       }
 
-      // Create calendar event
+      // Create calendar event object
       const event = {
         summary: task.title,
         description: `${task.description || ''}\n\nProject: ${task.project.name}\nPriority: ${task.priority}`,
@@ -156,9 +160,36 @@ export class CalendarService {
         colorId: this.getColorByPriority(task.priority),
       };
 
+      if (task.googleEventId) {
+          try {
+              // Try to update existing event
+              const response = await calendar.events.update({
+                  calendarId: 'primary',
+                  eventId: task.googleEventId,
+                  requestBody: event,
+              });
+              this.logger.log(`Task ${taskId} event updated: ${response.data.id}`);
+              return { success: true, eventId: response.data.id || undefined };
+          } catch (error) {
+              if (error.code === 404 || error.code === 410) {
+                  this.logger.warn(`Event ${task.googleEventId} not found, creating new one.`);
+                  // Fall through to insert
+              } else {
+                  throw error;
+              }
+          }
+      }
+
+      // Insert new event
       const response = await calendar.events.insert({
         calendarId: 'primary',
         requestBody: event,
+      });
+
+      // Update task with new event ID
+      await this.prisma.task.update({
+          where: { id: taskId },
+          data: { googleEventId: response.data.id }
       });
 
       this.logger.log(`Task ${taskId} synced to calendar: ${response.data.id}`);

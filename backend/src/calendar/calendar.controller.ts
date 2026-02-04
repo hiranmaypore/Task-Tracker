@@ -4,7 +4,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
 
 @Controller('calendar')
-@UseGuards(JwtAuthGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
 
@@ -13,8 +12,9 @@ export class CalendarController {
    * Frontend redirects user to this URL
    */
   @Get('auth-url')
-  getAuthUrl() {
-    const url = this.calendarService.getAuthUrl();
+  @UseGuards(JwtAuthGuard)
+  getAuthUrl(@User() user: any) {
+    const url = this.calendarService.getAuthUrl(user.userId);
     return { authUrl: url };
   }
 
@@ -24,8 +24,16 @@ export class CalendarController {
    */
   @Get('callback')
   @Redirect('http://localhost:8080/settings?google_sync=success', 302)
-  async handleCallback(@Query('code') code: string, @User() user: any) {
-    await this.calendarService.handleCallback(code, user.userId);
+  async handleCallback(@Query('code') code: string, @Query('state') state: string) {
+    let userId: string;
+    try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
+        userId = decoded.userId;
+    } catch (e) {
+        throw new Error('Invalid state parameter');
+    }
+
+    await this.calendarService.handleCallback(code, userId);
     return { url: 'http://localhost:8080/settings?google_sync=success' };
   }
 
@@ -33,6 +41,7 @@ export class CalendarController {
    * Get calendar sync status
    */
   @Get('status')
+  @UseGuards(JwtAuthGuard)
   async getStatus(@User() user: any) {
     return this.calendarService.getSyncStatus(user.userId);
   }
@@ -41,6 +50,7 @@ export class CalendarController {
    * Sync all pending tasks to Google Calendar
    */
   @Post('sync')
+  @UseGuards(JwtAuthGuard)
   async syncTasks(@User() user: any) {
     return this.calendarService.syncAllTasks(user.userId);
   }
@@ -49,6 +59,7 @@ export class CalendarController {
    * Disconnect Google Calendar
    */
   @Delete('disconnect')
+  @UseGuards(JwtAuthGuard)
   async disconnect(@User() user: any) {
     return this.calendarService.disconnect(user.userId);
   }

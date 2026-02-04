@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format } from "date-fns";
 
@@ -253,6 +254,15 @@ const Dashboard = () => {
                  loading={loading}
                />
           </motion.div>
+        </motion.div>
+
+        {/* Activity Feed */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <ActivityFeed limit={10} />
         </motion.div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

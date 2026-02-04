@@ -22,4 +22,14 @@ export class NotificationsController {
   async markAllAsRead(@User() user: any) {
     return this.notificationsService.markAllAsRead(user.userId);
   }
+
+  @Get('test') // Changed to GET for easier browser testing if needed, or POST. keeping it simple.
+  async triggerTest(@User() user: any) {
+     return this.notificationsService.create(
+        user.userId,
+        'Test Notification',
+        'This is a test notification to verify the system.',
+        'SUCCESS'
+     );
+  }
 }

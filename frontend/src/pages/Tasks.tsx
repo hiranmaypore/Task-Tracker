@@ -16,6 +16,7 @@ import {
   Circle,
   MoreHorizontal,
   Clock,
+  User,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,6 +43,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { TaskComments } from "@/components/TaskComments";
+import { SubtaskList } from "@/components/SubtaskList";
+import { TagSelector } from "@/components/TagSelector";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +77,19 @@ interface Task {
   project?: {
     name: string;
   };
+  tags?: Array<{
+    id: string;
+    tag: {
+      id: string;
+      name: string;
+      color: string;
+    };
+  }>;
+  assignee?: {
+      id: string;
+      name: string;
+      avatar?: string;
+  };
 }
 
 interface Project {
@@ -88,6 +104,7 @@ const taskSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   due_date: z.string().optional(),
   project_id: z.string().min(1, "Project is required"),
+  assignee_id: z.string().optional(),
 });
 type TaskFormValues = z.infer<typeof taskSchema>;
 
@@ -132,6 +149,7 @@ const Tasks = () => {
   // ... existing code ...
   const [project, setProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]); // All user projects
+  const [projectMembers, setProjectMembers] = useState<any[]>([]); // Members for assignment
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,11 +180,6 @@ const Tasks = () => {
                       headers: { Authorization: `Bearer ${token}` }
                   });
                   setProjects(response.data);
-                  
-                  // If we are in "My Tasks" view (no projectId param) and have projects, default to first
-                  if (!projectId && response.data.length > 0) {
-                      form.setValue('project_id', response.data[0].id);
-                  }
               }
           } catch (error) {
               console.error("Failed to fetch projects");
@@ -174,7 +187,32 @@ const Tasks = () => {
       };
       
       fetchProjects();
-  }, [projectId, form]); 
+  }, [projectId]);
+
+  // Fetch project members for assignment
+  const selectedProjectId = form.watch('project_id');
+  useEffect(() => {
+    if (selectedProjectId) {
+         const fetchMembers = async () => {
+             const token = localStorage.getItem('token');
+             if (token) {
+                 try {
+                    const res = await axios.get(`http://localhost:3000/projects/${selectedProjectId}/members`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    setProjectMembers(res.data);
+                 } catch (e) {
+                     setProjectMembers([]);
+                 }
+             }
+        };
+        fetchMembers();
+    } else {
+        setProjectMembers([]);
+    }
+  }, [selectedProjectId]);
+
+
 
   const handleTaskUpdate = (updatedTask: Task) => {
     // Optimistic update
@@ -218,6 +256,8 @@ const Tasks = () => {
                 description: editingTask.description || "",
                 priority: editingTask.priority,
                 due_date: editingTask.due_date ? editingTask.due_date.split('T')[0] : "",
+                project_id: editingTask.project_id,
+                assignee_id: editingTask.assignee?.id
             });
         } else {
             form.reset({
@@ -225,12 +265,14 @@ const Tasks = () => {
                 description: "",
                 priority: "MEDIUM",
                 due_date: "",
+                project_id: projectId || (projects.length > 0 ? projects[0].id : ""),
+                assignee_id: ""
             });
         }
     } else {
         setEditingTask(null);
     }
-  }, [isDialogOpen, editingTask, form]);
+  }, [isDialogOpen, editingTask, form, projectId, projects]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -264,6 +306,14 @@ const Tasks = () => {
             params.project_id = projectId;
         }
 
+        if (searchQuery) {
+            params.search = searchQuery;
+        }
+
+        if (statusFilter !== "ALL") {
+            params.status = statusFilter;
+        }
+
         const response = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
           params
@@ -278,8 +328,13 @@ const Tasks = () => {
     };
 
     fetchProject();
-    fetchTasks();
-  }, [projectId]);
+    
+    const timeoutId = setTimeout(() => {
+        fetchTasks();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [projectId, searchQuery, statusFilter]);
 
   const openEditDialog = (task: Task) => {
       setEditingTask(task);
@@ -299,9 +354,9 @@ const Tasks = () => {
           if (token) {
               const payload = { 
                   ...data, 
-                  project_id: projectId || "1", // Default to 1 if not provided
+                  project_id: data.project_id,
                   due_date: data.due_date ? new Date(data.due_date).toISOString() : null 
-              }; 
+              };
               const response = await axios.post('http://localhost:3000/tasks', payload, {
                   headers: { Authorization: `Bearer ${token}` }
               });
@@ -316,14 +371,20 @@ const Tasks = () => {
                     status: "TODO",
                     priority: data.priority,
                     due_date: data.due_date ? new Date(data.due_date).toISOString() : null,
-                    project_id: projectId || "1"
+                    project_id: data.project_id
                };
                setTasks([newTask, ...tasks]);
                toast({ title: "Task created locally" });
           }
       }
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({
+        title: "",
+        description: "",
+        priority: "MEDIUM",
+        due_date: "",
+        project_id: projectId || form.getValues("project_id"), // Preserve the project selection
+      });
     } catch (error) {
       console.error("Failed to sync task", error);
       toast({ title: "Error", description: "Failed to save task", variant: "destructive" });
@@ -331,12 +392,8 @@ const Tasks = () => {
   };
 
   // Filtering Logic
-  const filteredTasks = tasks.filter(task => {
-    const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    return matchesStatus && matchesSearch;
-  });
+  // Server-side filtering is now implemented
+  const filteredTasks = tasks;
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
@@ -365,7 +422,23 @@ const Tasks = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-card border-2 border-foreground p-1 mr-2">
+            {/* Search Input */}
+            <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+                <Input 
+                    placeholder="Search tasks..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-[180px] md:w-[240px] h-10 bg-background border-2 border-foreground font-mono text-sm 
+                    shadow-[4px_4px_0px_hsl(var(--foreground))] 
+                    focus-visible:ring-0 focus-visible:border-primary 
+                    focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] 
+                    focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] 
+                    transition-all placeholder:text-muted-foreground/70"
+                />
+            </div>
+
+            <div className="flex items-center gap-1 bg-card border-2 border-foreground p-1 h-10">
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -411,6 +484,7 @@ const Tasks = () => {
                         <div className="border-b-2 border-foreground px-6 bg-secondary/5">
                             <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-6">
                                 <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-mono font-bold uppercase text-xs data-[state=active]:text-primary text-muted-foreground transition-all">Details</TabsTrigger>
+                                <TabsTrigger value="subtasks" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-mono font-bold uppercase text-xs data-[state=active]:text-primary text-muted-foreground transition-all">Steps</TabsTrigger>
                                 <TabsTrigger value="comments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-3 font-mono font-bold uppercase text-xs data-[state=active]:text-primary text-muted-foreground transition-all">Comments</TabsTrigger>
                             </TabsList>
                         </div>
@@ -466,6 +540,29 @@ const Tasks = () => {
                                                 </FormItem>
                                             )}
                                          />
+                                         <FormField
+                                            control={form.control}
+                                            name="assignee_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-mono font-bold uppercase text-xs">Assignee</FormLabel>
+                                                    <FormControl>
+                                                        <select 
+                                                            className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                                            {...field}
+                                                        >
+                                                            <option value="">Unassigned</option>
+                                                            {projectMembers.map(m => (
+                                                                <option key={m.user.id} value={m.user.id}>
+                                                                    {m.user.name} ({m.role})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                         />
                                          <div className="grid grid-cols-2 gap-4">
                                             <FormField
                                                 control={form.control}
@@ -501,6 +598,27 @@ const Tasks = () => {
                                                 )}
                                             />
                                          </div>
+                                         
+                                         <div className="space-y-2 pt-4 border-t-2 border-foreground/10">
+                                             <label className="font-mono font-bold uppercase text-xs">Tags</label>
+                                             <TagSelector 
+                                                 taskId={editingTask.id} 
+                                                 projectId={editingTask.project_id}
+                                                 selectedTags={editingTask.tags || []}
+                                                 onTagsChange={async () => {
+                                                     // Refresh the task to get updated tags
+                                                     const token = localStorage.getItem('token');
+                                                     if (token) {
+                                                         const response = await axios.get(`http://localhost:3000/tasks/${editingTask.id}`, {
+                                                             headers: { Authorization: `Bearer ${token}` }
+                                                         });
+                                                         setEditingTask(response.data);
+                                                         setTasks(prev => prev.map(t => t.id === response.data.id ? response.data : t));
+                                                     }
+                                                 }}
+                                             />
+                                         </div>
+                                         
                                         <DialogFooter className="pt-4">
                                             <Button type="submit" className="w-full font-bold uppercase tracking-wider bg-primary text-primary-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all">
                                                 Save Changes
@@ -508,6 +626,9 @@ const Tasks = () => {
                                         </DialogFooter>
                                     </form>
                                 </Form>
+                            </TabsContent>
+                            <TabsContent value="subtasks" className="mt-0">
+                                <SubtaskList taskId={editingTask.id} projectId={editingTask.project_id} />
                             </TabsContent>
                             <TabsContent value="comments" className="mt-0">
                                 <TaskComments taskId={editingTask.id} />
@@ -556,9 +677,32 @@ const Tasks = () => {
                                                     className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all disabled:opacity-50"
                                                     {...field}
                                                 >
-                                                    <option value="" disabled>Select Project</option>
+                                                    {!field.value && <option value="">Select Project</option>}
                                                     {projects.map(p => (
                                                         <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="assignee_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-mono font-bold uppercase text-xs">Assignee</FormLabel>
+                                            <FormControl>
+                                                <select 
+                                                    className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                                    {...field}
+                                                >
+                                                    <option value="">Unassigned</option>
+                                                    {projectMembers.map(m => (
+                                                        <option key={m.user.id} value={m.user.id}>
+                                                            {m.user.name} ({m.role})
+                                                        </option>
                                                     ))}
                                                 </select>
                                             </FormControl>
@@ -756,6 +900,12 @@ const Tasks = () => {
                                                         {task.project.name}
                                                     </span>
                                                 )}
+                                                {task.assignee && (
+                                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20 text-primary">
+                                                        <User className="h-3 w-3" />
+                                                        <span className="truncate max-w-[100px]">{task.assignee.name}</span>
+                                                    </span>
+                                                )}
                                                 {task.due_date && (
                                                     <span className={`flex items-center gap-1 ${
                                                         new Date(task.due_date) < new Date() && task.status !== "DONE" ? "text-red-500 font-bold" : ""
@@ -763,6 +913,19 @@ const Tasks = () => {
                                                         <CalendarIcon className="h-3 w-3" />
                                                         {format(new Date(task.due_date), "MMM d")}
                                                     </span>
+                                                )}
+                                                {task.tags && task.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {task.tags.map((taskTag) => (
+                                                            <Badge
+                                                                key={taskTag.id}
+                                                                style={{ backgroundColor: taskTag.tag.color }}
+                                                                className="text-white border-0 font-mono text-[9px] px-1.5 py-0"
+                                                            >
+                                                                {taskTag.tag.name}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

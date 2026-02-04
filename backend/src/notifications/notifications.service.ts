@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { EventsGateway } from '../events/events.gateway';
 
@@ -63,5 +64,21 @@ export class NotificationsService {
         read: true,
       },
     });
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupOldNotifications() {
+    // Delete notifications older than 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await this.prisma.notification.deleteMany({
+      where: {
+        createdAt: {
+          lt: oneDayAgo,
+        },
+      },
+    });
+    if (result.count > 0) {
+        console.log(`[Notifications] Cleaned up ${result.count} old notifications`);
+    }
   }
 }

@@ -59,6 +59,16 @@ export class AuthService {
         await this.mailService.sendWelcomeEmail(user.email, user.name);
     }
     
+    // Update Google Tokens
+    await this.usersService.update(user.id, {
+        googleAccessToken: reqUser.accessToken,
+        googleRefreshToken: reqUser.refreshToken,
+        calendarSyncEnabled: true // Enable by default on login/signup
+    });
+    
+    // Refresh user object to get latest fields if needed
+    user = await this.usersService.findOne(user.id);
+    
     // Login logic
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {

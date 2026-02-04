@@ -7,4 +7,15 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  googleAccessToken?: string;
+
+  @IsOptional()
+  @IsString()
+  googleRefreshToken?: string;
+
+  @IsOptional()
+  calendarSyncEnabled?: boolean;
 }

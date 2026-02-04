@@ -7,8 +7,11 @@ import { TaskRoleGuard } from '../auth/guards/task-role.guard';
 
 import { AutomationModule } from '../automation/automation.module';
 
+import { CalendarModule } from '../calendar/calendar.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
-  imports: [PrismaModule, AutomationModule],
+  imports: [PrismaModule, AutomationModule, CalendarModule, NotificationsModule],
   controllers: [TasksController],
   providers: [
     TasksService,

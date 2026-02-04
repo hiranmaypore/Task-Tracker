@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { User, Bell, Shield, Moon, Sun, Loader2, Save } from "lucide-react";
+import { User, Bell, Shield, Moon, Sun, Loader2, Save, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import DashboardLayout from "@/components/DashboardLayout";
@@ -34,6 +34,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/theme-provider";
 import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
@@ -54,6 +64,15 @@ const Settings = () => {
   const { setTheme, theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userStats, setUserStats] = useState({
+    projectsOwned: 0,
+    tasksCreated: 0,
+    tasksCompleted: 0,
+    completionRate: 0,
+    memberSince: new Date(),
+  });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -71,10 +90,16 @@ const Settings = () => {
         try {
             const token = localStorage.getItem('token');
             if (token) {
-                const response = await axios.get('http://localhost:3000/users/me', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const user = response.data;
+                const [profileResponse, statsResponse] = await Promise.all([
+                    axios.get('http://localhost:3000/users/me', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    axios.get('http://localhost:3000/users/me/stats', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                ]);
+                
+                const user = profileResponse.data;
                 setUserId(user.id);
                 form.reset({
                     name: user.name,
@@ -83,6 +108,8 @@ const Settings = () => {
                     newPassword: "",
                     avatar: user.avatar || "",
                 });
+                
+                setUserStats(statsResponse.data);
             }
         } catch (error) {
             console.error("Failed to fetch profile", error);
@@ -134,6 +161,30 @@ const Settings = () => {
         toast({ title: "Error", description: "Failed to update profile", variant: "destructive" });
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast({ title: "Error", description: "Please type DELETE to confirm", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || !userId) return;
+
+      await axios.delete(`http://localhost:3000/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
+      
+      // Clear local storage and redirect to login
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete account", variant: "destructive" });
     }
   };
 
@@ -288,6 +339,92 @@ const Settings = () => {
                 </Form>
               </CardContent>
             </Card>
+
+            {/* Account Statistics */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-6"
+            >
+              <Card className="border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))]">
+                <CardHeader>
+                  <CardTitle className="font-pixel flex items-center gap-2 text-xl">
+                    📊 Account Overview
+                  </CardTitle>
+                  <CardDescription className="font-mono text-xs">Your activity summary</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <motion.div 
+                      className="p-4 border-2 border-foreground/20 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <div className="text-2xl font-bold font-pixel text-blue-600 dark:text-blue-400">{userStats.projectsOwned}</div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">Projects</div>
+                    </motion.div>
+                    <motion.div 
+                      className="p-4 border-2 border-foreground/20 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <div className="text-2xl font-bold font-pixel text-green-600 dark:text-green-400">{userStats.tasksCreated}</div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">Tasks Created</div>
+                    </motion.div>
+                    <motion.div 
+                      className="p-4 border-2 border-foreground/20 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <div className="text-2xl font-bold font-pixel text-purple-600 dark:text-purple-400">{userStats.tasksCompleted}</div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">Completed</div>
+                    </motion.div>
+                    <motion.div 
+                      className="p-4 border-2 border-foreground/20 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <div className="text-2xl font-bold font-pixel text-orange-600 dark:text-orange-400">{userStats.completionRate}%</div>
+                      <div className="text-xs font-mono text-muted-foreground uppercase">Completion</div>
+                    </motion.div>
+                  </div>
+                  <p className="text-xs font-mono text-muted-foreground mt-4 text-center">
+                    Member since {new Date(userStats.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Danger Zone */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-6"
+            >
+              <Card className="border-2 border-red-500 shadow-[4px_4px_0px_hsl(var(--destructive))] bg-red-500/5">
+                <CardHeader>
+                  <CardTitle className="font-pixel flex items-center gap-2 text-xl text-red-600 dark:text-red-400">
+                    <Trash2 className="h-5 w-5" /> Danger Zone
+                  </CardTitle>
+                  <CardDescription className="font-mono text-xs">Permanently delete your account and all data</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm font-mono text-muted-foreground">
+                    Once you delete your account, there is no going back. All your projects, tasks, and data will be permanently erased.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="font-bold uppercase tracking-wider border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           <TabsContent value="notifications">
@@ -321,6 +458,29 @@ const Settings = () => {
                         <p className="text-xs text-muted-foreground font-mono">Notify me about project changes.</p>
                      </div>
                      <Switch defaultChecked />
+                 </div>
+                 
+                 <Separator className="bg-foreground/10" />
+                 
+                 <div className="flex justify-end pt-2">
+                    <Button 
+                        onClick={async () => {
+                            try {
+                                const token = localStorage.getItem('token');
+                                await axios.get('http://localhost:3000/notifications/test', {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                });
+                                // Toast is handled by socket in NotificationCenter, but we can confirm request sent
+                            } catch (error) {
+                                toast({ title: "Error", description: "Failed to send test notification", variant: "destructive" });
+                            }
+                        }}
+                        variant="outline" 
+                        type="button"
+                        className="font-mono font-bold uppercase text-xs border-2 border-primary text-primary hover:bg-primary/10"
+                    >
+                        <Bell className="mr-2 h-4 w-4" /> Send Test Notification
+                    </Button>
                  </div>
               </CardContent>
             </Card>
@@ -366,6 +526,36 @@ const Settings = () => {
              <GoogleCalendarSettings />
           </TabsContent>
         </Tabs>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent className="border-2 border-foreground shadow-[8px_8px_0px_hsl(var(--foreground))] bg-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-xl">Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-sm">
+                This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm font-mono">Type <span className="font-bold text-red-500">DELETE</span> to confirm:</p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="font-mono border-2 border-foreground"
+                placeholder="Type DELETE here"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="font-mono font-bold uppercase border-2 border-foreground">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteAccount}
+                className="font-mono font-bold uppercase bg-red-600 hover:bg-red-700 border-2 border-foreground"
+              >
+                Delete Forever
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

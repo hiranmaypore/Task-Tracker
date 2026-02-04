@@ -102,7 +102,7 @@ const Automation = () => {
       
       const payload = {
         trigger: data.trigger,
-        conditions: data.priorityCondition ? { priority: data.priorityCondition } : {},
+        conditions: (data.priorityCondition && data.priorityCondition !== "NONE") ? { priority: data.priorityCondition } : {},
         actions: [data.action],
         enabled: true
       };
@@ -215,7 +215,7 @@ const Automation = () => {
                                 <SelectItem value="HIGH">Priority is HIGH</SelectItem>
                                 <SelectItem value="MEDIUM">Priority is MEDIUM</SelectItem>
                                 <SelectItem value="LOW">Priority is LOW</SelectItem>
-                                <SelectItem value="">No Condition</SelectItem>
+                                <SelectItem value="NONE">No Condition</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

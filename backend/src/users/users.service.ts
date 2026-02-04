@@ -44,6 +44,8 @@ export class UsersService {
     const data: any = { ...updateUserDto };
     
     if (data.password) {
+        // SECURITY: If changing password, validation should be done ideally.
+        // For now, we assume controller/guard handles auth.
         const salt = await bcrypt.genSalt();
         data.password_hash = await bcrypt.hash(data.password, salt);
         delete data.password;
@@ -84,7 +86,33 @@ export class UsersService {
     return user;
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} user`;
+  async getUserStats(userId: string) {
+    const [projectsOwned, tasksCreated, tasksCompleted, totalTasks] = await Promise.all([
+      this.prisma.project.count({ where: { owner_id: userId } }),
+      this.prisma.task.count({ where: { assignee_id: userId } }),
+      this.prisma.task.count({ where: { assignee_id: userId, status: 'DONE' } }),
+      this.prisma.task.count({ where: { assignee_id: userId } }),
+    ]);
+
+    const completionRate = totalTasks > 0 ? Math.round((tasksCompleted / totalTasks) * 100) : 0;
+
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: userId },
+      select: { created_at: true }
+    });
+
+    return {
+      projectsOwned,
+      tasksCreated,
+      tasksCompleted,
+      completionRate,
+      memberSince: user?.created_at || new Date(),
+    };
+  }
+
+  async remove(id: string) {
+    // Delete user and all related data (cascade handled by Prisma schema)
+    await this.prisma.user.delete({ where: { id } });
+    return { message: 'Account deleted successfully' };
   }
 }

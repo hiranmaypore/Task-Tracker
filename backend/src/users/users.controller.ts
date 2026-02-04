@@ -20,6 +20,12 @@ export class UsersController {
     return this.usersService.findOne(user.userId);
   }
 
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  getMyStats(@User() user: any) {
+    return this.usersService.getUserStats(user.userId);
+  }
+
   @Get()
   findAll() {
     return this.usersService.findAll();

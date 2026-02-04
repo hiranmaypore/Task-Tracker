@@ -12,6 +12,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as cacheManager_1 from 'cache-manager';
 
 import { AutomationService } from '../automation/automation.service';
+import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
@@ -23,6 +25,8 @@ export class TasksService {
     private mailService: MailService,
     @Inject(CACHE_MANAGER) private cacheManager: cacheManager_1.Cache,
     private automationService: AutomationService,
+    private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async invalidateUserCache(userId: string) {
@@ -42,10 +46,8 @@ export class TasksService {
     }
   }
 
-  // ... (keep private methods)
-
   async create(createTaskDto: CreateTaskDto, userId: string) {
-    // ... (existing code up to db creation)
+    // ... (existing code checks)
     const project = await this.prisma.project.findUnique({
       where: { id: createTaskDto.project_id },
     });
@@ -55,7 +57,6 @@ export class TasksService {
     }
 
     if (createTaskDto.parent_task_id) {
-       // ... existing validation
        const parentTask = await this.prisma.task.findUnique({ where: { id: createTaskDto.parent_task_id } });
        if (!parentTask) throw new NotFoundException('Parent task not found');
        if (parentTask.project_id !== createTaskDto.project_id) throw new BadRequestException('Subtask mismatch');
@@ -77,6 +78,28 @@ export class TasksService {
         assignee: true,
       },
     });
+
+    // Calendar Sync (only if user has calendar connected)
+    if (task.due_date) {
+        try {
+            const user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { calendarSyncEnabled: true, googleAccessToken: true }
+            });
+            
+            if (user?.calendarSyncEnabled && user?.googleAccessToken) {
+                const { eventId } = await this.calendarService.syncTaskToCalendar(userId, task.id);
+                if (eventId) {
+                   await this.prisma.task.update({
+                       where: { id: task.id },
+                       data: { googleEventId: eventId }
+                   });
+                }
+            }
+        } catch (e) {
+            console.warn(`Calendar sync failed for task ${task.id}: ${e.message}`);
+        }
+    }
 
     await this.activityLog.logTaskCreated(userId, task.id, task.title);
     this.eventsGateway.emitTaskCreated(task.project_id, task);
@@ -172,6 +195,11 @@ export class TasksService {
             email: true,
           },
         },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: {
         created_at: 'desc',
@@ -207,6 +235,22 @@ export class TasksService {
       }
     });
 
+    // Calendar Sync (if title, desc, or date changed and user has calendar connected)
+    if (updatedTask.due_date && (updateTaskDto.title || updateTaskDto.description || updateTaskDto.due_date || updateTaskDto.priority)) {
+        try {
+            const user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { calendarSyncEnabled: true, googleAccessToken: true }
+            });
+            
+            if (user?.calendarSyncEnabled && user?.googleAccessToken) {
+                await this.calendarService.syncTaskToCalendar(userId, updatedTask.id);
+            }
+        } catch (e) {
+             console.warn(`Calendar sync failed for task ${updatedTask.id}: ${e.message}`);
+        }
+    }
+
     if (updateTaskDto.due_date) {
       const date = new Date(updateTaskDto.due_date);
       await this.remindersService.scheduleReminder(updatedTask.id, updatedTask.project_id, userId, date);
@@ -222,6 +266,10 @@ export class TasksService {
     // 3. Log specific activities if needed
     if (updateTaskDto.status && updateTaskDto.status !== oldTask.status) {
        await this.activityLog.logTaskStatusChanged(userId, id, oldTask.status, updateTaskDto.status);
+       
+       // Create Notification
+       const message = `Task "${oldTask.title}" status changed to ${updateTaskDto.status}`;
+       await this.notificationsService.create(userId, "Task Updated", message, "INFO");
     }
 
     if (updateTaskDto.assignee_id && updateTaskDto.assignee_id !== oldTask.assignee_id) {

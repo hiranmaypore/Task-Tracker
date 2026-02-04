@@ -47,29 +47,48 @@ export class AutomationService {
   }
 
   private evaluateConditions(conditions: any, event: any): boolean {
-    if (!Array.isArray(conditions)) return true; // No conditions = always run? or false? changing to true (catch-all)
+    // 1. If conditions is an Array, use the complex rule engine
+    if (Array.isArray(conditions)) {
+        return conditions.every(condition => {
+          const eventValue = this.checkValue(event, condition.field); // Updated helper
+          
+          switch (condition.op) {
+            case '=':
+            case '==':
+              return eventValue == condition.value;
+            case '!=':
+                return eventValue != condition.value;
+            case '>':
+              return eventValue > condition.value;
+            case '<':
+              return eventValue < condition.value;
+            case 'contains':
+                return (eventValue as string)?.includes(condition.value);
+            default:
+              return false;
+          }
+        });
+    }
 
-    // Simple Rule Engine
-    // Condition Schema: { field: "metadata.priority", op: "=", value: "HIGH" }
-    return conditions.every(condition => {
-      const eventValue = this.getNestedValue(event, condition.field);
-      
-      switch (condition.op) {
-        case '=':
-        case '==':
-          return eventValue == condition.value;
-        case '!=':
-            return eventValue != condition.value;
-        case '>':
-          return eventValue > condition.value;
-        case '<':
-          return eventValue < condition.value;
-        case 'contains':
-            return (eventValue as string)?.includes(condition.value);
-        default:
-          return false;
-      }
-    });
+    // 2. If conditions is an Object (Simple Key-Value), check metadata equality
+    if (typeof conditions === 'object' && conditions !== null) {
+        return Object.entries(conditions).every(([key, value]) => {
+            // Check metadata first, then task root
+            const metaValue = event.metadata ? event.metadata[key] : undefined;
+            const taskValue = event.task ? event.task[key] : undefined;
+            
+            const actualValue = metaValue !== undefined ? metaValue : taskValue;
+            
+            return actualValue == value;
+        });
+    }
+
+    return true; // No conditions
+  }
+
+  private checkValue(obj: any, path: string) {
+      if (!path) return undefined;
+      return path.split('.').reduce((o, p) => (o ? o[p] : undefined), obj);
   }
 
   private getNestedValue(obj: any, path: string) {
