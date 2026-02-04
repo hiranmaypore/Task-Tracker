@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -147,8 +148,8 @@ const Dashboard = () => {
         const token = localStorage.getItem('token');
         if (token) {
              const [statsRes, activityRes] = await Promise.all([
-                axios.get('http://localhost:3000/statistics/dashboard', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('http://localhost:3000/activity-log/recent', { headers: { Authorization: `Bearer ${token}` } })
+                axios.get(`${API_BASE_URL}/statistics/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API_BASE_URL}/activity-log/recent`, { headers: { Authorization: `Bearer ${token}` } })
              ]);
              setStats(statsRes.data);
              setActivities(activityRes.data);

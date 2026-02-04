@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Folder, MoreVertical, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -101,7 +102,7 @@ const Projects = () => {
       // If no token in offline/preview mode, throw immediately to use mock data
       if (!token) throw new Error("No token");
 
-      const response = await axios.get('http://localhost:3000/projects', {
+      const response = await axios.get(`${API_BASE_URL}/projects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProjects(response.data);
@@ -124,7 +125,7 @@ const Projects = () => {
       if (editingProject) {
         // Update Logic
         if (token) {
-           await axios.patch(`http://localhost:3000/projects/${editingProject.id}`, data, {
+           await axios.patch(`${API_BASE_URL}/projects/${editingProject.id}`, data, {
              headers: { Authorization: `Bearer ${token}` }
            });
            toast({ title: "Success", description: "Project updated successfully" });
@@ -133,7 +134,7 @@ const Projects = () => {
       } else {
         // Create Logic
         if (token) {
-          await axios.post('http://localhost:3000/projects', data, {
+          await axios.post(`${API_BASE_URL}/projects`, data, {
             headers: { Authorization: `Bearer ${token}` }
           });
           toast({ title: "Success", description: "Project created successfully" });
@@ -171,7 +172,7 @@ const Projects = () => {
       try {
           const token = localStorage.getItem('token');
           if (token) {
-              const response = await axios.get(`http://localhost:3000/projects/${projectId}/members`, {
+              const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/members`, {
                   headers: { Authorization: `Bearer ${token}` }
               });
               setTeamMembers(response.data);
@@ -186,7 +187,7 @@ const Projects = () => {
       try {
           const token = localStorage.getItem('token');
           if (token && managingProject) {
-              await axios.post(`http://localhost:3000/projects/${managingProject.id}/invite`, {
+              await axios.post(`${API_BASE_URL}/projects/${managingProject.id}/invite`, {
                   email: inviteEmail,
                   role: inviteRole
               }, {
@@ -209,7 +210,7 @@ const Projects = () => {
       try {
           const token = localStorage.getItem('token');
           if (token && managingProject) {
-              await axios.delete(`http://localhost:3000/projects/${managingProject.id}/members/${userId}`, {
+              await axios.delete(`${API_BASE_URL}/projects/${managingProject.id}/members/${userId}`, {
                   headers: { Authorization: `Bearer ${token}` }
               });
               toast({ title: "Member Removed" });
@@ -225,7 +226,7 @@ const Projects = () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-            await axios.delete(`http://localhost:3000/projects/${projectId}`, {
+            await axios.delete(`${API_BASE_URL}/projects/${projectId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({ title: "Success", description: "Project deleted successfully" });

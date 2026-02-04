@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Check, Plus, Trash2, Loader2, GripVertical, Circle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,7 @@ export function SubtaskList({ taskId, projectId }: SubtaskListProps) {
         // We fetch the main task to get its subtasks
         // Ideally we'd have a specific endpoint, but fetching the task works if it includes subtasks
         // HOWEVER, backend findOne includes subtasks.
-        const response = await axios.get(`http://localhost:3000/tasks/${taskId}`, {
+        const response = await axios.get(`${API_BASE_URL}/tasks/${taskId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -57,7 +58,7 @@ export function SubtaskList({ taskId, projectId }: SubtaskListProps) {
     setAdding(true);
     try {
         const token = localStorage.getItem("token");
-        await axios.post('http://localhost:3000/tasks', {
+        await axios.post(`${API_BASE_URL}/tasks`, {
             title: newTitle,
             project_id: projectId, // Subtask belongs to same project
             parent_task_id: taskId,
@@ -84,7 +85,7 @@ export function SubtaskList({ taskId, projectId }: SubtaskListProps) {
 
       try {
           const token = localStorage.getItem("token");
-          await axios.patch(`http://localhost:3000/tasks/${subtask.id}`, {
+          await axios.patch(`${API_BASE_URL}/tasks/${subtask.id}`, {
               status: newStatus
           }, {
               headers: { Authorization: `Bearer ${token}` }
@@ -103,7 +104,7 @@ export function SubtaskList({ taskId, projectId }: SubtaskListProps) {
 
       try {
           const token = localStorage.getItem("token");
-          await axios.delete(`http://localhost:3000/tasks/${subtaskId}`, {
+          await axios.delete(`${API_BASE_URL}/tasks/${subtaskId}`, {
               headers: { Authorization: `Bearer ${token}` }
           });
       } catch (e) {

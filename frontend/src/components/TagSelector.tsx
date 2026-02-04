@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { X, Plus, Tag as TagIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +50,7 @@ export function TagSelector({ taskId, projectId, selectedTags, onTagsChange }: T
   const fetchTags = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:3000/tags?projectId=${projectId}`, {
+      const response = await axios.get(`${API_BASE_URL}/tags?projectId=${projectId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAvailableTags(response.data);
@@ -63,7 +64,7 @@ export function TagSelector({ taskId, projectId, selectedTags, onTagsChange }: T
     
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post('http://localhost:3000/tags', {
+      const response = await axios.post(`${API_BASE_URL}/tags`, {
         projectId,
         name: newTagName,
         color: selectedColor
@@ -82,7 +83,7 @@ export function TagSelector({ taskId, projectId, selectedTags, onTagsChange }: T
   const assignTag = async (tagId: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post('http://localhost:3000/tags/assign', {
+      await axios.post(`${API_BASE_URL}/tags/assign`, {
         taskId,
         tagId
       }, {
@@ -98,7 +99,7 @@ export function TagSelector({ taskId, projectId, selectedTags, onTagsChange }: T
   const unassignTag = async (tagId: string) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete('http://localhost:3000/tags/unassign', {
+      await axios.delete(`${API_BASE_URL}/tags/unassign`, {
         data: { taskId, tagId },
         headers: { Authorization: `Bearer ${token}` }
       });

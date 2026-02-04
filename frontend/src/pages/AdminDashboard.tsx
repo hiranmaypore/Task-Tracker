@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { 
   BarChart, 
   Bar, 
@@ -35,9 +36,9 @@ const AdminDashboard = () => {
 
       // Parallel fetch
       const [dauRes, completionRes, autoRes] = await Promise.all([
-        axios.get('http://localhost:3000/analytics/dau', { headers }),
-        axios.get('http://localhost:3000/analytics/tasks/completion', { headers }),
-        axios.get('http://localhost:3000/analytics/automation/executions', { headers })
+        axios.get(`${API_BASE_URL}/analytics/dau`, { headers }),
+        axios.get(`${API_BASE_URL}/analytics/tasks/completion`, { headers }),
+        axios.get(`${API_BASE_URL}/analytics/automation/executions`, { headers })
       ]);
 
       // Parse DAU result (MongoDB raw output structure)

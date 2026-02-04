@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 import { Calendar, CheckCircle2, XCircle, RefreshCw, Link as LinkIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +39,7 @@ export function GoogleCalendarSettings() {
     try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const response = await axios.get('http://localhost:3000/calendar/status', {
+        const response = await axios.get(`${API_BASE_URL}/calendar/status`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setIsConnected(response.data.connected);
@@ -51,7 +52,7 @@ export function GoogleCalendarSettings() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/calendar/auth-url', {
+      const response = await axios.get(`${API_BASE_URL}/calendar/auth-url`, {
           headers: { Authorization: `Bearer ${token}` }
       });
       window.location.href = response.data.authUrl;
@@ -65,7 +66,7 @@ export function GoogleCalendarSettings() {
     setIsLoading(true);
     try {
         const token = localStorage.getItem('token');
-         await axios.delete('http://localhost:3000/calendar/disconnect', {
+         await axios.delete(`${API_BASE_URL}/calendar/disconnect`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setIsConnected(false);
@@ -81,7 +82,7 @@ export function GoogleCalendarSettings() {
     setIsLoading(true);
     try {
         const token = localStorage.getItem('token');
-        await axios.post('http://localhost:3000/calendar/sync', {}, {
+        await axios.post(`${API_BASE_URL}/calendar/sync`, {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         toast({ title: "Synced!", description: "Tasks pushed to Google Calendar." });
