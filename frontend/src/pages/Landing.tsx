@@ -1,6 +1,8 @@
-import { CheckSquare, Github, Twitter, Zap, Target, Calendar, Sparkles, Users, BarChart3, Plus, CheckCircle, Trophy, ArrowRight, Star, Menu, X, Rocket, Heart } from "lucide-react";
+import { CheckSquare, Github, Twitter, Zap, Target, Calendar, Sparkles, Users, BarChart3, Plus, CheckCircle, Trophy, ArrowRight, Star, Menu, X, Rocket, Heart, Layers, Bot, Bell, Sun, Moon } from "lucide-react";
 import { motion, useScroll, useTransform, useInView, AnimatePresence, type Variants, type Easing } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "@/components/theme-provider";
 import heroIllustration from "@/assets/hero-illustration.png";
 
 // Easing values
@@ -126,18 +128,18 @@ const TypewriterText = ({ text, delay = 0 }: { text: string; delay?: number }) =
 
 // Data
 const features = [
-  { icon: Zap, title: "Lightning Fast", description: "Add tasks in seconds. No friction, no fuss. Just type and go.", color: "bg-accent" },
-  { icon: Target, title: "Stay Focused", description: "Prioritize what matters. Clear the noise. Crush your goals.", color: "bg-secondary" },
-  { icon: Calendar, title: "Smart Scheduling", description: "Set due dates that work for you. Never miss a deadline again.", color: "bg-primary" },
-  { icon: Sparkles, title: "Daily Streaks", description: "Build habits that stick. Watch your productivity streak grow.", color: "bg-accent" },
-  { icon: Users, title: "Team Ready", description: "Share lists, assign tasks, collaborate seamlessly.", color: "bg-secondary" },
-  { icon: BarChart3, title: "Track Progress", description: "See your wins. Beautiful charts show how much you've accomplished.", color: "bg-primary" },
+  { icon: Layers, title: "Project Power", description: "Manage complex projects with role-based access. Assign Owners, Editors, and Viewers.", color: "bg-accent" },
+  { icon: Bot, title: "Smart Automation", description: "Create 'If This Then That' rules. Let the system handle repetitive tasks for you.", color: "bg-secondary" },
+  { icon: Calendar, title: "Calendar Sync", description: "Two-way Google Calendar integration. Keep your schedule perfectly aligned.", color: "bg-primary" },
+  { icon: Zap, title: "Real-Time Sync", description: "Live updates via WebSockets. See changes happen instantly across all devices.", color: "bg-accent" },
+  { icon: Users, title: "Team Collaboration", description: "Comment on tasks, share lists, and stay in the loop with email notifications.", color: "bg-secondary" },
+  { icon: BarChart3, title: "Deep Insights", description: "Visual productivity dashboards. Track completion rates and team performance.", color: "bg-primary" },
 ];
 
 const steps = [
-  { number: "01", icon: Plus, title: "Add Your Tasks", description: "Type what you need to do. Hit enter. That's it. No complicated forms or endless options." },
-  { number: "02", icon: CheckCircle, title: "Check Them Off", description: "Feel the satisfaction of marking tasks complete. Watch your list shrink as you conquer the day." },
-  { number: "03", icon: Trophy, title: "Celebrate Wins", description: "Track your streaks, earn achievements, and see how much you've accomplished over time." },
+  { number: "01", icon: Layers, title: "Organize Projects", description: "Create projects, invite your team, and define roles. Structure your work your way." },
+  { number: "02", icon: Bot, title: "Automate Workflows", description: "Set up 'If This Then That' rules. Let the system assign tasks and send reminders automatically." },
+  { number: "03", icon: BarChart3, title: "Track Success", description: "Monitor team velocity and completion rates. Get accurate insights to keep you on track." },
 ];
 
 const testimonials = [
@@ -157,6 +159,8 @@ const benefits = ["Free forever plan", "No credit card required", "Start in 30 s
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { setTheme, theme } = useTheme();
   const { scrollYProgress } = useScroll();
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
@@ -204,7 +208,7 @@ const Index = () => {
             <div className="w-10 h-10 flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground shadow-[2px_2px_0px_hsl(var(--foreground))]">
               <CheckSquare className="w-5 h-5" />
             </div>
-            <span className="font-pixel text-2xl text-primary">TASKFLOW</span>
+            <span className="font-pixel text-2xl text-primary">TASKTRACKER</span>
           </motion.div>
 
           {/* Desktop nav */}
@@ -212,7 +216,7 @@ const Index = () => {
             {["Features", "How it Works", "Testimonials"].map((item, i) => (
               <motion.a
                 key={item}
-                href={`#${item.toLowerCase().replace(" ", "-")}`}
+                href={`#${item.toLowerCase().split(' ').join('-')}`}
                 className="font-mono text-sm uppercase tracking-wider hover:text-primary transition-colors relative group"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -222,16 +226,43 @@ const Index = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
               </motion.a>
             ))}
+
           </div>
 
-          <motion.a
-            href="#cta"
-            className="hidden md:inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all text-sm"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Get Started
-          </motion.a>
+          <div className="hidden md:flex items-center gap-4">
+             <motion.button
+               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+               className="relative w-10 h-10 border-2 border-foreground flex items-center justify-center hover:bg-muted transition-colors shadow-[2px_2px_0px_hsl(var(--foreground))] hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_hsl(var(--foreground))] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+               whileTap={{ scale: 0.95 }}
+             >
+               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+             </motion.button>
+
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-card text-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all text-sm"
+              >
+                Login
+              </Link>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all text-sm"
+              >
+                Get Started
+              </Link>
+            </motion.div>
+          </div>
 
           {/* Mobile menu button */}
           <motion.button
@@ -253,23 +284,37 @@ const Index = () => {
               className="md:hidden border-t-2 border-foreground bg-background"
             >
               <div className="container mx-auto px-6 py-4 flex flex-col gap-4">
+                <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider py-2"
+                >
+                    {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </button>
                 {["Features", "How it Works", "Testimonials"].map((item) => (
                   <a
                     key={item}
-                    href={`#${item.toLowerCase().replace(" ", "-")}`}
+                    href={`#${item.toLowerCase().split(' ').join('-')}`}
                     className="font-mono text-sm uppercase tracking-wider py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item}
                   </a>
                 ))}
-                <a
-                  href="#cta"
+                <Link
+                  to="/login"
+                   className="font-mono text-sm uppercase tracking-wider py-2"
+                   onClick={() => setMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
                   className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Get Started
-                </a>
+                </Link>
               </div>
             </motion.div>
           )}
@@ -316,15 +361,19 @@ const Index = () => {
                 className="flex flex-col sm:flex-row gap-4"
                 variants={fadeInUp}
               >
-                <motion.a
-                  href="#cta"
-                  className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all text-lg"
+                <motion.div
+                  className="inline-flex"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Rocket className="w-5 h-5 mr-2" />
-                  Start Free Today
-                </motion.a>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all text-lg"
+                  >
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Start Free Today
+                  </Link>
+                </motion.div>
                 <motion.a
                   href="#how-it-works"
                   className="inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider bg-card text-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all text-lg"
@@ -575,12 +624,11 @@ const Index = () => {
                     {step.number}
                   </motion.div>
 
-                  <motion.div
+                  <div
                     className="w-16 h-16 mx-auto flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground shadow-[2px_2px_0px_hsl(var(--foreground))] mb-6"
-                    whileHover={{ scale: 1.1, rotate: 10 }}
                   >
                     <step.icon className="w-8 h-8" />
-                  </motion.div>
+                  </div>
 
                   <h3 className="font-pixel text-3xl text-foreground mb-4">{step.title}</h3>
                   <p className="font-mono text-sm text-muted-foreground">{step.description}</p>
@@ -681,20 +729,23 @@ const Index = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
             >
-              <motion.a
-                href="#"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all text-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <motion.div
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
               >
-                Get Started Free
-                <motion.span
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 font-bold uppercase tracking-wider bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all text-lg"
                 >
-                  <ArrowRight className="w-5 h-5" />
-                </motion.span>
-              </motion.a>
+                  Get Started Free
+                  <motion.span
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </motion.span>
+                </Link>
+              </motion.div>
             </motion.div>
 
             <motion.div
@@ -737,12 +788,12 @@ const Index = () => {
           >
             <motion.div
               className="flex items-center gap-2"
-              whileHover={{ scale: 1.05 }}
+              // whileHover={{ scale: 1.05 }}
             >
               <div className="w-8 h-8 flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground shadow-[2px_2px_0px_hsl(var(--foreground))]">
                 <CheckSquare className="w-4 h-4" />
               </div>
-              <span className="font-pixel text-xl text-primary">TASKFLOW</span>
+              <span className="font-pixel text-xl text-primary">TASKTRACKER</span>
             </motion.div>
 
             <div className="flex items-center gap-6">
@@ -759,17 +810,26 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {[Twitter, Github].map((Icon, i) => (
-                <motion.a
-                  key={i}
-                  href="#"
-                  className="w-10 h-10 border-2 border-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                  whileHover={{ y: -4, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Icon className="w-5 h-5" />
-                </motion.a>
-              ))}
+            <div className="flex items-center gap-4">
+              <a
+                href="https://x.com/HiranmayPore"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 border-2 border-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                title="Twitter"
+              >
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a
+                href="https://github.com/hiranmaypore"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 border-2 border-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                title="GitHub"
+              >
+                <Github className="w-5 h-5" />
+              </a>
+            </div>
             </div>
           </motion.div>
 

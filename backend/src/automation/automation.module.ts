@@ -6,10 +6,13 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MailModule } from '../mail/mail.module';
 
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
   imports: [
     PrismaModule,
     MailModule,
+    NotificationsModule,
     BullModule.registerQueue({
       name: 'automation',
     }),

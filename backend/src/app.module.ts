@@ -16,15 +16,19 @@ import { RemindersModule } from './reminders/reminders.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MailModule } from './mail/mail.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AutomationModule } from './automation/automation.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { TagsModule } from './tags/tags.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 100,
@@ -85,7 +89,9 @@ import { redisStore } from 'cache-manager-redis-yet';
     MailModule,
     AnalyticsModule,
     AutomationModule,
+    NotificationsModule,
     CalendarModule,
+    TagsModule,
   ],
   controllers: [AppController, RoutesController],
   providers: [

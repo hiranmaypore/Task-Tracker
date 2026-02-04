@@ -1,8 +1,51 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url("https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap");
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
-@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+
 
 @layer base {
   :root {
@@ -43,7 +86,11 @@
     --radius: 0.25rem;
 
     /* Custom tokens */
-    --dot-pattern: radial-gradient(circle, hsl(40, 20%, 75%) 1px, transparent 1px);
+    --dot-pattern: radial-gradient(
+      circle,
+      hsl(40, 20%, 75%) 1px,
+      transparent 1px
+    );
     --retro-shadow: 4px 4px 0px hsl(30, 10%, 15%);
     --retro-shadow-sm: 2px 2px 0px hsl(30, 10%, 15%);
     --retro-shadow-accent: 4px 4px 0px hsl(30, 90%, 30%);
@@ -100,18 +147,28 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
+    border-style: solid;
+    border-width: 0;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Space Mono', monospace;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: "Space Mono", monospace;
     background-image: var(--dot-pattern);
     background-size: 20px 20px;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'VT323', monospace;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "VT323", monospace;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
@@ -119,8 +176,17 @@
 
 @layer components {
   .retro-button {
-    @apply inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all duration-150;
-    font-family: 'Space Mono', monospace;
+    /* @apply inline-flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all duration-150; */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem; /* px-6 py-3 */
+    font-weight: 700; /* font-bold */
+    text-transform: uppercase;
+    letter-spacing: 0.05em; /* tracking-wider */
+    transition: all 150ms;
+
+    font-family: "Space Mono", monospace;
     box-shadow: var(--retro-shadow);
   }
 
@@ -135,25 +201,71 @@
   }
 
   .retro-button-primary {
-    @apply retro-button bg-accent text-accent-foreground border-2 border-foreground;
+    /* @apply retro-button bg-accent text-accent-foreground border-2 border-foreground; */
+    /* .retro-button classes already applied by composition or need to be duplicated. 
+       Usually usage is className="retro-button retro-button-primary". 
+       But here retro-button-primary @applied retro-button. I should verify usage.
+       Commonly classes are just composed. I will assume composition or duplication.
+       Actually, @apply copies styles. So I should copy styles if I don't use the class.
+    */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 150ms;
+    font-family: "Space Mono", monospace;
+    box-shadow: var(--retro-shadow);
+
+    /* Specifics */
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border: 2px solid hsl(var(--foreground));
   }
 
   .retro-button-secondary {
-    @apply retro-button bg-card text-foreground border-2 border-foreground;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 150ms;
+    font-family: "Space Mono", monospace;
+    box-shadow: var(--retro-shadow);
+
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+    border: 2px solid hsl(var(--foreground));
   }
 
   .retro-card {
-    @apply bg-card border-2 border-foreground p-6;
+    /* @apply bg-card border-2 border-foreground p-6; */
+    background-color: hsl(var(--card));
+    border: 2px solid hsl(var(--foreground));
+    padding: 1.5rem;
     box-shadow: var(--retro-shadow);
   }
 
   .pixel-heading {
-    @apply text-primary;
+    /* @apply text-primary; */
+    color: hsl(var(--primary));
     text-shadow: 3px 3px 0px hsl(30, 90%, 30%);
   }
 
   .feature-icon {
-    @apply w-16 h-16 flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground;
+    /* @apply w-16 h-16 flex items-center justify-center bg-secondary text-secondary-foreground border-2 border-foreground; */
+    width: 4rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border: 2px solid hsl(var(--foreground));
     box-shadow: var(--retro-shadow-sm);
   }
 }
@@ -164,8 +276,13 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   .animate-pulse-slow {
@@ -173,7 +290,12 @@
   }
 
   @keyframes pulse-slow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 }

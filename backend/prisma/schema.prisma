@@ -48,12 +48,14 @@ model User {
   activity_logs  ActivityLog[]
   events         Event[]
   automation_rules AutomationRule[]
+  notifications    Notification[]
   
   // Google Calendar Sync
   googleAccessToken   String?
   googleRefreshToken  String?
   googleTokenExpiry   DateTime?
   calendarSyncEnabled Boolean   @default(false)
+  avatar              String?
 }
 
 model Project {
@@ -66,6 +68,7 @@ model Project {
   owner   User            @relation("ProjectOwner", fields: [owner_id], references: [id])
   members ProjectMember[]
   tasks   Task[]
+  tags    Tag[]
 }
 
 model ProjectMember {
@@ -100,6 +103,10 @@ model Task {
   parent_task Task?     @relation("SubTasks", fields: [parent_task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subtasks    Task[]    @relation("SubTasks")
   comments    Comment[]
+  tags        TaskTag[]
+  
+  // Calendar Integration
+  googleEventId String?
 }
 
 model Comment {
@@ -111,6 +118,30 @@ model Comment {
 
   task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id])
+}
+
+model Tag {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  color     String   @default("#3b82f6") // Default blue
+  projectId String   @db.ObjectId
+  createdAt DateTime @default(now())
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     TaskTag[]
+  
+  @@unique([projectId, name])
+}
+
+model TaskTag {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  taskId String @db.ObjectId
+  tagId  String @db.ObjectId
+  
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([taskId, tagId])
 }
 
 model ActivityLog {
@@ -148,4 +179,16 @@ model AutomationRule {
   updatedAt  DateTime @updatedAt
 
   owner      User     @relation(fields: [ownerId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
 }

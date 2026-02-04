@@ -9,4 +9,8 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  userRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
 }

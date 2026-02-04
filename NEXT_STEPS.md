@@ -277,15 +277,19 @@ PORT=3000
 
 ## 🚀 Recommended Order of Implementation
 
-1. ✅ **Test the current API** (use API_TESTING.md)
-2. 🔄 **Add validation middleware** (quick win)
-3. 🔄 **Implement activity logging** (important for tracking)
-4. 🔄 **Add project member management** (core feature)
-5. 🔄 **Enhance authorization** (security)
-6. 🔄 **Add task statistics** (useful feature)
-7. 🔄 **Add due date queries** (enhancement)
-8. 🔄 **Implement soft delete** (best practice)
-9. 🔄 **Add CORS** (when ready for frontend)
+1. ✅ **Test the current API** (Completed)
+2. ✅ **Implementing Activity Logging** (Completed)
+3. ✅ **Add Task Statistics** (Completed)
+4. ✅ **Add Notifications System** (Completed)
+5. ✅ **Google Calendar Integration** (Completed)
+6. ✅ **Frontend: Project Member Management** (Completed)
+   - UI to invite members by email implemented
+   - Member list and role management implemented
+7. ✅ **Frontend: Task Assignment** (Completed)
+   - Assignee field added to Create/Edit Task forms
+   - Assignee avatar displayed on Task Cards
+8. 🔄 **Implement Soft Delete** (Next Priority)
+9. 🔄 **Enhance Authorization** (Backlog)
 
 ---
 

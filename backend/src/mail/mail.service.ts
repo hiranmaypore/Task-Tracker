@@ -40,4 +40,28 @@ export class MailService {
       },
     });
   }
+
+  async sendProjectInvitation(email: string, projectName: string, role: string, inviterName: string) {
+    await this.mailQueue.add('send-email', {
+      to: email,
+      subject: `You've been invited to join ${projectName}`,
+      template: 'project-invitation',
+      context: {
+        projectName,
+        role,
+        inviterName,
+      },
+    });
+  }
+
+  async sendWelcomeEmail(email: string, name: string) {
+    await this.mailQueue.add('send-email', {
+      to: email,
+      subject: 'Welcome to FlytBase To-Do!',
+      template: 'welcome',
+      context: {
+        name,
+      },
+    });
+  }
 }

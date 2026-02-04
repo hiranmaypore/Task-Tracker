@@ -6,6 +6,7 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../auth/user.decorator';
+import { InviteMemberDto } from './dto/invite-member.dto';
 import { ProjectMemberGuard } from '../auth/guards/project-member.guard';
 import { ProjectOwnerGuard } from '../auth/guards/project-owner.guard';
 import { ProjectRoleGuard } from '../auth/guards/project-role.guard';
@@ -28,8 +29,13 @@ export class ProjectsController {
 
   @Get(':id')
   @UseGuards(ProjectMemberGuard) // Only project members can view
-  findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+        return await this.projectsService.findOne(id);
+    } catch (error) {
+        console.error("Error in GET /projects/:id", error);
+        throw error;
+    }
   }
 
   @Patch(':id')
@@ -74,5 +80,15 @@ export class ProjectsController {
   @UseGuards(ProjectOwnerGuard) // Only OWNER can remove members
   removeMember(@Param('id') projectId: string, @Param('userId') userId: string, @User() user: any) {
     return this.projectsService.removeMember(projectId, userId, user.userId);
+  }
+
+  @Post(':id/invite')
+  @UseGuards(ProjectOwnerGuard)
+  inviteMember(
+    @Param('id') projectId: string, 
+    @Body() inviteDto: InviteMemberDto, 
+    @User() user: any
+  ) {
+      return this.projectsService.inviteMember(projectId, inviteDto.email, inviteDto.role, user.userId);
   }
 }
