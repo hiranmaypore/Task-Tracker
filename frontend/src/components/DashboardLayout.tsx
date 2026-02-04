@@ -32,6 +32,38 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setTheme, theme } = useTheme();
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                // We use a light fetch or rely on what we have. 
+                // Ideally this should be in a context, but we'll fetch for now.
+                // We'll reuse the backend's /users/me endpoint which is efficient.
+                const response = await fetch('http://localhost:3000/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserAvatar(data.avatar);
+                }
+            } catch (e) {
+                console.error("Failed to load user info");
+            }
+        }
+    };
+
+    fetchUser();
+    
+    // Listen for updates from Settings page
+    window.addEventListener('user-updated', fetchUser);
+    
+    return () => {
+        window.removeEventListener('user-updated', fetchUser);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -148,8 +180,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <NotificationCenter />
                 
                 <Link to="/settings">
-                  <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 border-2 border-transparent hover:border-foreground/20">
-                    <User className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 border-2 border-transparent hover:border-foreground/20 overflow-hidden p-0">
+                    {userAvatar ? (
+                        <img src={userAvatar} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                        <User className="h-5 w-5" />
+                    )}
                   </Button>
                 </Link>
               </div>

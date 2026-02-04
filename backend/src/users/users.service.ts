@@ -40,8 +40,48 @@ export class UsersService {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const data: any = { ...updateUserDto };
+    
+    if (data.password) {
+        const salt = await bcrypt.genSalt();
+        data.password_hash = await bcrypt.hash(data.password, salt);
+        delete data.password;
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        ...data,
+        updated_at: new Date(),
+      },
+      select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          avatar: true, // Ensure we return this
+          created_at: true,
+      }
+    });
+
+    // Log this action
+    await this.prisma.activityLog.create({
+        data: {
+            user_id: id,
+            action: 'updated profile',
+            entity_type: 'User',
+            entity_id: id,
+        }
+    });
+    
+    // Check for "Profile Updated" automation trigger (simplified)
+    // In a real app, this would be more robust.
+    
+    return user;
   }
 
   remove(id: string) {

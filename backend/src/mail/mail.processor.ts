@@ -57,30 +57,52 @@ export class MailProcessor extends WorkerHost {
     const { to, subject, template, context } = job.data;
     this.logger.log(`Sending email to ${to} [${template}]`);
 
-    const text = `
-      To-Do List Notification
-      -----------------------
-      ${subject}
-      
-      Project: ${context.projectName}
-      Task: ${context.taskTitle}
-      
-      (This is an automated message)
-    `;
+    let htmlContent = '';
+    let textContent = '';
+
+    if (template === 'task-assigned' || template === 'reminder') {
+        htmlContent = `
+            <div style="font-family: sans-serif;">
+                <h2>${subject}</h2>
+                <p><strong>Project:</strong> ${context.projectName}</p>
+                <p><strong>Task:</strong> ${context.taskTitle}</p>
+                <hr/>
+                <small>To-Do List App Notification</small>
+            </div>
+        `;
+        textContent = `To-Do List Notification\n${subject}\nProject: ${context.projectName}\nTask: ${context.taskTitle}`;
+    } else if (template === 'project-invitation') {
+        htmlContent = `
+            <div style="font-family: sans-serif;">
+                <h2>Project Invitation</h2>
+                <p>You have been invited to join <strong>${context.projectName}</strong> as <strong>${context.role}</strong>.</p>
+                <p>Invited by: ${context.inviterName}</p>
+                <a href="http://localhost:5173/projects" style="display:inline-block;padding:10px 20px;background:black;color:white;text-decoration:none;">View Projects</a>
+            </div>
+        `;
+        textContent = `Project Invitation\nYou have been invited to join ${context.projectName} as ${context.role} by ${context.inviterName}.`;
+    } else if (template === 'welcome') {
+        htmlContent = `
+            <div style="font-family: sans-serif;">
+                <h2>Welcome to FlytBase To-Do!</h2>
+                <p>Hi ${context.name},</p>
+                <p>Thanks for registering.</p>
+            </div>
+        `;
+        textContent = `Welcome to FlytBase To-Do!\nHi ${context.name},\nThanks for registering.`;
+    } else {
+        // Generic
+        htmlContent = `<div><h2>${subject}</h2><p>${context.body || JSON.stringify(context)}</p></div>`;
+        textContent = `${subject}\n${context.body || JSON.stringify(context)}`;
+    }
 
     try {
         const info = await this.transporter.sendMail({
           from: '"To-Do App" <noreply@todoapp.com>',
           to,
           subject,
-          text,
-          html: `<div style="font-family: sans-serif;">
-                   <h2>${subject}</h2>
-                   <p><strong>Project:</strong> ${context.projectName}</p>
-                   <p><strong>Task:</strong> ${context.taskTitle}</p>
-                   <hr/>
-                   <small>To-Do List App Notification</small>
-                 </div>`,
+          text: textContent,
+          html: htmlContent,
         });
 
         this.logger.log(`Message sent: ${info.messageId}`);

@@ -48,37 +48,14 @@ interface Project {
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required").max(50, "Name too long"),
   description: z.string().max(200, "Description too long").optional(),
+  userRole: z.enum(["OWNER", "EDITOR", "VIEWER"]).optional(),
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
 
 // Mock Data for Offline Mode
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: "1",
-    name: "Website Redesign",
-    description: "Overhaul the company website with new branding.",
-    created_at: new Date().toISOString(),
-    _count: { tasks: 12, members: 3 },
-    role: "OWNER"
-  },
-  {
-    id: "2",
-    name: "Mobile App Launch",
-    description: "Prepare assets and marketing for the Q3 launch.",
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-    _count: { tasks: 8, members: 5 },
-    role: "EDITOR"
-  },
-  {
-    id: "3",
-    name: "Q4 Roadmap",
-    description: "Planning session outputs and task breakdown.",
-    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-    _count: { tasks: 24, members: 2 },
-    role: "VIEWER"
-  },
-];
+// Mock Data for Offline Mode (Removed)
+const MOCK_PROJECTS: Project[] = [];
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -92,6 +69,7 @@ const Projects = () => {
     defaultValues: {
       name: "",
       description: "",
+      userRole: "OWNER",
     },
   });
 
@@ -128,8 +106,8 @@ const Projects = () => {
       });
       setProjects(response.data);
     } catch (error) {
-      console.log("Using mock projects data");
-      setProjects(MOCK_PROJECTS);
+      console.log("Failed to fetch projects");
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -151,10 +129,6 @@ const Projects = () => {
            });
            toast({ title: "Success", description: "Project updated successfully" });
            fetchProjects();
-        } else {
-           // Offline Mock Update
-           setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...p, ...data } : p));
-           toast({ title: "Offline Mode", description: "Project updated locally" });
         }
       } else {
         // Create Logic
@@ -164,18 +138,6 @@ const Projects = () => {
           });
           toast({ title: "Success", description: "Project created successfully" });
           fetchProjects(); 
-        } else {
-          // Offline Mock Create
-          const newProject: Project = {
-              id: Math.random().toString(),
-              name: data.name,
-              description: data.description || null,
-              created_at: new Date().toISOString(),
-              _count: { tasks: 0, members: 1 },
-              role: "OWNER"
-          };
-          setProjects([newProject, ...projects]);
-          toast({ title: "Offline Mode", description: "Project created locally" });
         }
       }
       setIsDialogOpen(false);
@@ -193,6 +155,72 @@ const Projects = () => {
       setIsDialogOpen(true);
   };
 
+  const [managingProject, setManagingProject] = useState<Project | null>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"OWNER"|"EDITOR"|"VIEWER">("VIEWER");
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+
+  const handleManageTeam = async (project: Project) => {
+      setManagingProject(project);
+      setIsTeamDialogOpen(true);
+      fetchMembers(project.id);
+  };
+
+  const fetchMembers = async (projectId: string) => {
+      try {
+          const token = localStorage.getItem('token');
+          if (token) {
+              const response = await axios.get(`http://localhost:3000/projects/${projectId}/members`, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              setTeamMembers(response.data);
+          }
+      } catch (error) {
+          console.error("Failed to fetch members");
+      }
+  };
+
+  const handleInvite = async () => {
+      if (!inviteEmail) return;
+      try {
+          const token = localStorage.getItem('token');
+          if (token && managingProject) {
+              await axios.post(`http://localhost:3000/projects/${managingProject.id}/invite`, {
+                  email: inviteEmail,
+                  role: inviteRole
+              }, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              toast({ title: "Invitation Sent", description: `Invited ${inviteEmail} as ${inviteRole}` });
+              setInviteEmail("");
+              fetchMembers(managingProject.id); // Refresh list
+          }
+      } catch (error: any) {
+          toast({ 
+              title: "Invitation Failed", 
+              description: error.response?.data?.message || "Could not invite user.",
+              variant: "destructive"
+          });
+      }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+      try {
+          const token = localStorage.getItem('token');
+          if (token && managingProject) {
+              await axios.delete(`http://localhost:3000/projects/${managingProject.id}/members/${userId}`, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              toast({ title: "Member Removed" });
+              fetchMembers(managingProject.id);
+          }
+      } catch (error) {
+          toast({ title: "Failed to remove member", variant: "destructive" });
+      }
+  };
+
+
   const handleDeleteProject = async (projectId: string) => {
       try {
         const token = localStorage.getItem('token');
@@ -202,10 +230,6 @@ const Projects = () => {
             });
             toast({ title: "Success", description: "Project deleted successfully" });
             fetchProjects();
-        } else {
-            // Offline Mock Delete
-            setProjects(prev => prev.filter(p => p.id !== projectId));
-            toast({ title: "Offline Mode", description: "Project deleted locally", variant: "destructive" });
         }
       } catch (error) {
           toast({ 
@@ -238,6 +262,81 @@ const Projects = () => {
             <p className="font-mono text-muted-foreground">Manage your team's workspace.</p>
           </div>
           
+                {/* Team Management Dialog */}
+                <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
+                    <DialogContent className="border-2 border-foreground shadow-[8px_8px_0px_hsl(var(--foreground))] max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="font-pixel text-xl">Manage Team: {managingProject?.name}</DialogTitle>
+                            <DialogDescription className="font-mono text-xs">Invite members and manage roles.</DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="space-y-6">
+                            {/* Invite Form */}
+                            <div className="bg-secondary/10 p-4 border border-foreground/20 rounded-md space-y-3">
+                                <h4 className="font-bold font-mono text-sm uppercase">Invite New Member</h4>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="User Email" 
+                                        value={inviteEmail}
+                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        className="font-mono border-2 border-foreground"
+                                    />
+                                    <select 
+                                        value={inviteRole}
+                                        onChange={(e) => setInviteRole(e.target.value as any)}
+                                        className="h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none"
+                                    >
+                                        <option value="VIEWER">Viewer</option>
+                                        <option value="EDITOR">Editor</option>
+                                        <option value="OWNER">Owner</option>
+                                    </select>
+                                    <Button onClick={handleInvite} className="font-bold border-2 border-foreground shadow-[2px_2px_0px_hsl(var(--foreground))] active:shadow-none">
+                                        Invoke
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Members List */}
+                            <div className="space-y-2">
+                                <h4 className="font-bold font-mono text-sm uppercase">Current Squad ({teamMembers.length})</h4>
+                                <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                                    {teamMembers.map((member: any) => (
+                                        <div key={member.id} className="flex items-center justify-between p-2 border border-foreground/10 rounded-md bg-card">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-full overflow-hidden border border-foreground/20 bg-primary/10 flex items-center justify-center">
+                                                    {member.user.avatar ? (
+                                                        <img src={member.user.avatar} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <span className="font-bold text-xs">{member.user.name[0]}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold font-mono text-sm">{member.user.name}</div>
+                                                    <div className="text-[10px] font-mono text-muted-foreground">{member.user.email}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-bold font-mono uppercase bg-secondary/20 px-2 py-1 rounded">{member.role}</span>
+                                                {/* Only show remove if not owner, simplified check for now */}
+                                                {member.role !== 'OWNER' && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                                        onClick={() => handleRemoveMember(member.user.id)}
+                                                    >
+                                                        x
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="font-bold uppercase tracking-wider bg-primary text-primary-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all">
@@ -287,6 +386,28 @@ const Projects = () => {
                       </FormItem>
                     )}
                   />
+                  {!editingProject && (
+                      <FormField
+                        control={form.control}
+                        name="userRole"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-mono font-bold uppercase text-xs">My Role</FormLabel>
+                            <FormControl>
+                                <select 
+                                    className="w-full h-10 px-3 py-2 rounded-md border-2 border-foreground bg-background font-mono text-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary focus-visible:shadow-[2px_2px_0px_hsl(var(--foreground))] transition-all"
+                                    {...field}
+                                >
+                                    <option value="OWNER">Owner (Full Access)</option>
+                                    <option value="EDITOR">Editor (Can Edit)</option>
+                                    <option value="VIEWER">Viewer (Read Only)</option>
+                                </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  )}
                   <DialogFooter>
                     <Button type="submit" className="w-full font-bold uppercase bg-accent text-accent-foreground border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_hsl(var(--foreground))] active:shadow-none transition-all">
                       {editingProject ? "Save Changes" : "Create Project"}
@@ -338,8 +459,9 @@ const Projects = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="border-2 border-foreground">
-                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer" onClick={() => handleEditClick(project)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => handleDeleteProject(project.id)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer" onClick={(e) => { e.stopPropagation(); handleEditClick(project); }}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer" onClick={(e) => { e.stopPropagation(); handleManageTeam(project); }}>Manage Team</DropdownMenuItem>
+                              <DropdownMenuItem className="font-mono text-xs uppercase cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                        </div>

@@ -7,11 +7,15 @@ import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 
+import { ProjectMember } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+
 @Injectable()
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private activityLog: ActivityLogService,
+    private mailService: MailService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
@@ -28,7 +32,7 @@ export class ProjectsService {
       data: {
         project_id: project.id,
         user_id: userId,
-        role: 'OWNER',
+        role: createProjectDto.userRole || 'OWNER',
       },
     });
 
@@ -266,6 +270,7 @@ export class ProjectsService {
             name: true,
             email: true,
             role: true,
+            avatar: true, // Included for frontend
           },
         },
       },
@@ -276,5 +281,66 @@ export class ProjectsService {
     });
 
     return members;
+  }
+
+  async inviteMember(projectId: string, email: string, role: 'OWNER' | 'EDITOR' | 'VIEWER', actorId: string) {
+    // 1. Verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // 2. Find user by email (For now, strict mode: User must exist)
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User with this email not found. They must register first.');
+    }
+
+    // 3. Check if already a member
+    const existingMember = await this.prisma.projectMember.findFirst({
+      where: {
+        project_id: projectId,
+        user_id: user.id,
+      },
+    });
+
+    if (existingMember) {
+      throw new BadRequestException('User is already a member of this project');
+    }
+
+    // 4. Add member
+    const member = await this.prisma.projectMember.create({
+      data: {
+        project_id: projectId,
+        user_id: user.id,
+        role: role,
+      },
+      include: {
+        user: {
+           select: { name: true, email: true }
+        }
+      }
+    });
+
+    // 5. Log activity
+    await this.activityLog.logMemberAdded(actorId, projectId, member.id, role);
+
+    // 6. Send Email
+    const actor = await this.prisma.user.findUnique({ where: { id: actorId } });
+    
+    await this.mailService.sendProjectInvitation(
+        email, 
+        project.name, 
+        role, 
+        actor ? actor.name : 'A Team Member'
+    );
+    
+    return member;
   }
 }

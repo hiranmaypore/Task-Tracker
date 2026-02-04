@@ -44,6 +44,7 @@ const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
   currentPassword: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   newPassword: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
+  avatar: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -61,6 +62,7 @@ const Settings = () => {
       email: "",
       currentPassword: "",
       newPassword: "",
+      avatar: "",
     },
   });
 
@@ -79,6 +81,7 @@ const Settings = () => {
                     email: user.email,
                     currentPassword: "",
                     newPassword: "",
+                    avatar: user.avatar || "",
                 });
             }
         } catch (error) {
@@ -98,7 +101,10 @@ const Settings = () => {
             return;
         }
 
-        const payload: any = { name: data.name };
+        const payload: any = { 
+            name: data.name,
+            avatar: data.avatar 
+        };
         
         // Only include password if changing it
         if (data.newPassword && data.newPassword.length >= 6) {
@@ -119,6 +125,9 @@ const Settings = () => {
         // Clear password fields on success
         form.setValue("currentPassword", "");
         form.setValue("newPassword", "");
+
+        // Notify other components (like DashboardLayout) to refresh user data
+        window.dispatchEvent(new Event('user-updated'));
 
     } catch (error) {
         console.error("Update failed", error);
@@ -204,6 +213,33 @@ const Settings = () => {
                             </FormItem>
                             )}
                         />
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="font-pixel text-lg flex items-center gap-2">
+                             <User className="h-4 w-4" /> Avatar
+                        </h3>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
+                            {[
+                                "Felix", "Aneka", "Zack", "Molly", "Bear", "Caitlyn",
+                                "Digby", "Eliza", "Fiona", "Gavin", "Hanna", "Ivan"
+                            ].map((seed) => {
+                                const avatarUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
+                                return (
+                                    <div 
+                                        key={seed}
+                                        onClick={() => form.setValue('avatar', avatarUrl, { shouldDirty: true })}
+                                        className={`cursor-pointer rounded-lg border-2 overflow-hidden transition-all hover:scale-105 ${
+                                            form.watch('avatar') === avatarUrl 
+                                            ? 'border-primary ring-2 ring-primary ring-offset-2' 
+                                            : 'border-transparent hover:border-foreground/50'
+                                        }`}
+                                    >
+                                        <img src={avatarUrl} alt={seed} className="w-full h-auto bg-secondary/20" />
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                     
                     <Separator className="bg-foreground/20" />

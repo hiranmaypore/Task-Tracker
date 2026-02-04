@@ -56,6 +56,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useSocket } from "@/context/SocketContext";
+
 
 // Types
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
@@ -91,7 +93,43 @@ type TaskFormValues = z.infer<typeof taskSchema>;
 
 const Tasks = () => {
   const { id: projectId } = useParams();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const { socket } = useSocket();
+  const [tasks, setTasks] = useState<Task[]>([]); // Restored state
+  
+  // Socket Logic
+  useEffect(() => {
+    if (!socket || !projectId) return;
+
+    socket.emit('joinProject', { projectId });
+
+    const handleTaskCreated = (newTask: Task) => {
+        if (newTask.project_id === projectId) {
+            setTasks(prev => [newTask, ...prev]);
+            toast({ title: "New Task Created", description: newTask.title });
+        }
+    };
+
+    const handleTaskUpdated = (updatedTask: Task) => {
+        setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    };
+
+    const handleTaskDeleted = (data: { id: string }) => {
+        setTasks(prev => prev.filter(t => t.id !== data.id));
+    };
+
+    socket.on('task_created', handleTaskCreated);
+    socket.on('task_updated', handleTaskUpdated);
+    socket.on('task_deleted', handleTaskDeleted);
+
+    return () => {
+        socket.emit('leaveProject', { projectId });
+        socket.off('task_created', handleTaskCreated);
+        socket.off('task_updated', handleTaskUpdated);
+        socket.off('task_deleted', handleTaskDeleted);
+    };
+  }, [socket, projectId]);
+
+  // ... existing code ...
   const [project, setProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]); // All user projects
   const [loading, setLoading] = useState(true);

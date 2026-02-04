@@ -60,6 +60,7 @@ interface ActivityLog {
   user: {
     name: string;
     email: string;
+    avatar?: string;
   };
 }
 
@@ -99,8 +100,12 @@ const ActivityItem = ({ log }: { log: ActivityLog }) => {
 
     return (
         <div className="flex items-start gap-4 mb-4 border-b border-foreground/10 pb-4 last:border-0 last:mb-0 last:pb-0">
-            <div className="bg-primary/20 p-2 rounded-full border border-foreground/10">
-                 <Users className="h-4 w-4 text-primary-foreground" />
+            <div className={`p-0.5 rounded-full border border-foreground/10 shrink-0 overflow-hidden h-9 w-9 ${!log.user.avatar && 'bg-primary/20 p-2'}`}>
+                 {log.user.avatar ? (
+                     <img src={log.user.avatar} alt={log.user.name} className="h-full w-full object-cover" />
+                 ) : (
+                     <Users className="h-4 w-4 text-primary-foreground mx-auto" />
+                 )}
             </div>
             <div>
                 <p className="text-sm font-mono">

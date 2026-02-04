@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Bell, Check, Trash2, MailOpen } from "lucide-react";
 import { format } from "date-fns";
+import { useSocket } from "@/context/SocketContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   Popover,
   PopoverContent,
@@ -24,15 +26,36 @@ export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const { socket } = useSocket();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+
+    if (socket) {
+        socket.on('notification_created', (newNotification: Notification) => {
+            setNotifications(prev => [newNotification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            toast({
+                title: newNotification.title,
+                description: newNotification.message,
+            });
+        });
+
+        return () => {
+            socket.off('notification_created');
+        };
+    }
+  }, [socket]);
+
+  // Keep polling as backup every 60s
+  useEffect(() => {
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
   }, []);
 
   const fetchNotifications = async () => {
+     // ... existing implementation
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -47,6 +70,7 @@ export function NotificationCenter() {
   };
 
   const markAsRead = async (id: string) => {
+    // ... existing implementation
     try {
       const token = localStorage.getItem('token');
       await axios.patch(`http://localhost:3000/notifications/${id}/read`, {}, {
@@ -62,6 +86,7 @@ export function NotificationCenter() {
   };
 
   const markAllAsRead = async () => {
+    // ... existing implementation
     try {
       const token = localStorage.getItem('token');
       await axios.patch(`http://localhost:3000/notifications/read-all`, {}, {

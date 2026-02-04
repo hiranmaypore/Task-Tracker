@@ -55,6 +55,7 @@ model User {
   googleRefreshToken  String?
   googleTokenExpiry   DateTime?
   calendarSyncEnabled Boolean   @default(false)
+  avatar              String?
 }
 
 model Project {

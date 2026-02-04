@@ -35,7 +35,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload; // { userId: ..., email: ... }
-      this.logger.log(`Client connected: ${client.id} User: ${payload.userId}`);
+      client.join(`user_${payload.userId}`); // Join personal room
+      this.logger.log(`Client connected: ${client.id} User: ${payload.userId} joined user_${payload.userId}`);
     } catch (e) {
       this.logger.error(`Client connection rejected: ${e.message}`);
       client.disconnect();
@@ -99,5 +100,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitTaskDeleted(projectId: string, taskId: string) {
     this.server.to(`project_${projectId}`).emit('task_deleted', { id: taskId, projectId });
+  }
+
+  emitNotification(userId: string, notification: any) {
+    this.server.to(`user_${userId}`).emit('notification_created', notification);
   }
 }
