@@ -797,15 +797,22 @@ const Index = () => {
             </motion.div>
 
             <div className="flex items-center gap-6">
-              {["Privacy", "Terms", "Contact"].map((item) => (
-                <motion.a
-                  key={item}
-                  href="#"
-                  className="font-mono text-sm text-muted-foreground hover:text-primary transition-colors uppercase"
+              {[
+                { label: "Privacy", path: "/privacy" },
+                { label: "Terms", path: "/terms" },
+                { label: "Contact", path: "/contact" }
+              ].map((item) => (
+                <motion.div
+                  key={item.label}
                   whileHover={{ y: -2 }}
                 >
-                  {item}
-                </motion.a>
+                  <Link
+                    to={item.path}
+                    className="font-mono text-sm text-muted-foreground hover:text-primary transition-colors uppercase"
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
               ))}
             </div>
 

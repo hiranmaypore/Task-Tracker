@@ -16,6 +16,8 @@ import PrivateRoute from "./components/PrivateRoute";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./components/theme-provider";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import Contact from "@/pages/Contact";
 
 import axios from "axios";
 import { useEffect } from "react";
@@ -61,7 +63,9 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} /> {/* Added route */}
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/contact" element={<Contact />} />
                 
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>

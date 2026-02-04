@@ -1,9 +1,9 @@
-import DashboardLayout from "@/components/DashboardLayout";
+import MinimalLayout from "@/components/MinimalLayout";
 import { Card } from "@/components/ui/card";
 
 const PrivacyPolicy = () => {
     return (
-        <DashboardLayout>
+        <MinimalLayout>
             <div className="max-w-4xl mx-auto py-12 px-4">
                 <Card className="p-8 border-2 border-foreground shadow-[4px_4px_0px_hsl(var(--foreground))]">
                     <h1 className="font-pixel text-4xl mb-6">Privacy Policy</h1>
@@ -56,7 +56,7 @@ const PrivacyPolicy = () => {
                     </div>
                 </Card>
             </div>
-        </DashboardLayout>
+        </MinimalLayout>
     );
 };
 
