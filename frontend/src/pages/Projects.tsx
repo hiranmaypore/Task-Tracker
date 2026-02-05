@@ -39,11 +39,13 @@ interface Project {
   name: string;
   description: string | null;
   created_at: string;
+  taskCount?: number;
+  memberCount?: number;
   _count?: {
     tasks: number;
     members: number;
   };
-  role?: string; // User's role in the project
+  role?: string; 
 }
 
 const projectSchema = z.object({
@@ -476,10 +478,10 @@ const Projects = () => {
                       
                       <div className="mt-4 flex gap-4 text-xs font-mono font-bold text-foreground/60 uppercase">
                           <div className="flex items-center gap-1">
-                             <span className="text-primary">{project._count?.tasks || 0}</span> Tasks
+                             <span className="text-primary">{project.taskCount ?? project._count?.tasks ?? 0}</span> Tasks
                           </div>
                           <div className="flex items-center gap-1">
-                             <span className="text-secondary-foreground">{project._count?.members || 1}</span> Members
+                             <span className="text-secondary">{project.memberCount ?? project._count?.members ?? 1}</span> Members
                           </div>
                       </div>
                     </CardContent>

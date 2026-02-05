@@ -59,11 +59,12 @@ model User {
 }
 
 model Project {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  name       String
-  owner_id   String   @db.ObjectId
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  owner_id    String   @db.ObjectId
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   owner   User            @relation("ProjectOwner", fields: [owner_id], references: [id])
   members ProjectMember[]

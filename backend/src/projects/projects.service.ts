@@ -42,8 +42,11 @@ export class ProjectsService {
     return project;
   }
 
-  findAll(userId: string) {
-    return this.prisma.project.findMany({
+  async findAll(userId: string) {
+    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.log(`[ProjectsService] FETCHING PROJECTS FOR USER: ${userId}`);
+    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    const projects = await this.prisma.project.findMany({
       where: {
         members: {
           some: {
@@ -52,41 +55,79 @@ export class ProjectsService {
         },
       },
       include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
-            },
-          },
+        tasks: {
+          select: { id: true }
         },
+        members: true,
       },
+    });
+
+    console.log(`[ProjectsService] Found ${projects.length} projects for user ${userId}`);
+    
+    return projects.map(p => {
+      const tasks = (p as any).tasks || [];
+      const members = (p as any).members || [];
+      const userMembership = members.find((m: any) => m.user_id === userId);
+      
+      return {
+        id: p.id,
+        name: p.name,
+        description: (p as any).description,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        taskCount: tasks.length,
+        memberCount: members.length,
+        _count: {
+          tasks: tasks.length,
+          members: members.length
+        },
+        role: userMembership?.role || 'VIEWER'
+      };
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.project.findUnique({
+  async findOne(id: string, userId?: string) {
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
-        tasks: true,
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
-            },
+        _count: {
+          select: {
+            tasks: true,
+            members: true,
           },
         },
+        tasks: true,
+        members: userId ? {
+          where: {
+            user_id: userId
+          }
+        } : true
       },
     });
+
+    if (!project) return null;
+
+    const tasks = (project as any).tasks || [];
+    const members = (project as any).members || [];
+    const userMembership = members.find((m: any) => m.user_id === userId);
+    
+    return {
+      id: project.id,
+      name: project.name,
+      description: (project as any).description,
+      owner_id: project.owner_id,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      taskCount: tasks.length,
+      memberCount: members.length,
+      _count: {
+        tasks: tasks.length,
+        members: members.length
+      },
+      tasks: project.tasks,
+      members: project.members,
+      role: userMembership?.role || 'VIEWER'
+    };
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto, userId: string) {

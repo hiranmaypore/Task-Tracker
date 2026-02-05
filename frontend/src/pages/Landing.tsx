@@ -143,9 +143,9 @@ const steps = [
 ];
 
 const testimonials = [
-  { name: "Alex Chen", role: "Startup Founder", avatar: "AC", quote: "Finally, a todo app that doesn't try to do everything. Just lets me focus on what matters.", rating: 5 },
-  { name: "Sarah Miller", role: "Freelance Designer", avatar: "SM", quote: "The streak feature is addictive! I've been productive for 47 days straight now.", rating: 5 },
-  { name: "Jordan Lee", role: "Engineering Lead", avatar: "JL", quote: "Our team adopted it in a day. No training needed. Everyone just got it immediately.", rating: 5 },
+  { name: "Alex Chen", role: "Startup Founder", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=Alex", quote: "Finally, a todo app that doesn't try to do everything. Just lets me focus on what matters.", rating: 5 },
+  { name: "Sarah Miller", role: "Freelance Designer", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=Sarah", quote: "The streak feature is addictive! I've been productive for 47 days straight now.", rating: 5 },
+  { name: "Jordan Lee", role: "Engineering Lead", avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=Jordan", quote: "Our team adopted it in a day. No training needed. Everyone just got it immediately.", rating: 5 },
 ];
 
 const stats = [
@@ -185,7 +185,7 @@ const Index = () => {
     <div className="min-h-screen overflow-x-hidden">
       {/* Progress bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-primary z-[100] origin-left"
+        className="fixed top-0 left-0 right-0 h-1 bg-primary z-100 origin-left"
         style={{ scaleX }}
       />
 
@@ -389,15 +389,19 @@ const Index = () => {
                 variants={fadeInUp}
               >
                 <div className="flex -space-x-3">
-                  {["A", "B", "C", "D"].map((letter, i) => (
+                  {[1, 2, 3, 4].map((i) => (
                     <motion.div
-                      key={letter}
-                      className="w-10 h-10 rounded-full bg-secondary border-2 border-foreground flex items-center justify-center text-secondary-foreground font-mono text-xs"
+                      key={i}
+                      className="w-10 h-10 rounded-full bg-secondary border-2 border-foreground flex items-center justify-center overflow-hidden"
                       initial={{ opacity: 0, scale: 0, x: -20 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       transition={{ delay: 0.8 + i * 0.1 }}
                     >
-                      {letter}
+                      <img 
+                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar${i}&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                        alt="User" 
+                        className="w-full h-full object-cover"
+                      />
                     </motion.div>
                   ))}
                 </div>
@@ -685,8 +689,12 @@ const Index = () => {
                 <p className="font-mono text-foreground mb-6 italic">"{testimonial.quote}"</p>
 
                 <div className="flex items-center gap-3">
-                  <motion.div className="w-12 h-12 rounded-full bg-primary border-2 border-foreground flex items-center justify-center text-primary-foreground font-mono font-bold">
-                    {testimonial.avatar}
+                  <motion.div className="w-12 h-12 rounded-full bg-primary border-2 border-foreground flex items-center justify-center text-primary-foreground font-mono font-bold overflow-hidden">
+                    {testimonial.avatar.startsWith('http') ? (
+                      <img src={testimonial.avatar} alt={testimonial.name} className="w-full h-full object-cover" />
+                    ) : (
+                      testimonial.avatar
+                    )}
                   </motion.div>
                   <div>
                     <p className="font-pixel text-lg text-foreground">{testimonial.name}</p>

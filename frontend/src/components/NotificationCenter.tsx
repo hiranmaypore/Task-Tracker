@@ -139,7 +139,7 @@ export function NotificationCenter() {
                             className={`p-4 hover:bg-muted/30 transition-colors flex gap-3 ${!notification.read ? 'bg-primary/5' : ''}`}
                             onClick={() => !notification.read && markAsRead(notification.id)}
                         >
-                            <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-transparent'}`} />
+                            <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${!notification.read ? 'bg-primary' : 'bg-transparent'}`} />
                             <div className="flex-1 space-y-1">
                                 <p className={`text-sm font-medium leading-none ${!notification.read ? 'font-bold' : 'text-muted-foreground'}`}>
                                     {notification.title}

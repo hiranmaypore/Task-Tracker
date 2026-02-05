@@ -29,9 +29,9 @@ export class ProjectsController {
 
   @Get(':id')
   @UseGuards(ProjectMemberGuard) // Only project members can view
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @User() user: any) {
     try {
-        return await this.projectsService.findOne(id);
+        return await this.projectsService.findOne(id, user.userId);
     } catch (error) {
         console.error("Error in GET /projects/:id", error);
         throw error;
