@@ -30,15 +30,14 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
     const data = await this.authService.googleLogin(req.user);
-    // Redirect to frontend with token
-    // In production, better to use a secure cookie or postMessage
-    // For now, passing token in query param
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
     if (data && typeof data !== 'string') {
         const token = data.access_token;
         const user = encodeURIComponent(JSON.stringify(data.user));
-        return res.redirect(`http://localhost:5173/login?token=${token}&user=${user}`);
+        return res.redirect(`${frontendUrl}/login?token=${token}&user=${user}`);
     } else {
-        return res.redirect('http://localhost:5173/login?error=auth_failed');
+        return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
   }
 }
