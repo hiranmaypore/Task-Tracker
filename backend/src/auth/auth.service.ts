@@ -38,9 +38,21 @@ export class AuthService {
   }
 
   async register(createUserDto: CreateUserDto) {
-    const user = await this.usersService.create(createUserDto);
-    await this.mailService.sendWelcomeEmail(user.email, user.name);
-    return user;
+    try {
+      console.log(`[AuthService] Attempting to register user: ${createUserDto.email}`);
+      const user = await this.usersService.create(createUserDto);
+      
+      try {
+        await this.mailService.sendWelcomeEmail(user.email, user.name);
+      } catch (mailError) {
+        console.error('[AuthService] Failed to send welcome email, but user created:', mailError.message);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('[AuthService] Registration failed:', error.message);
+      throw error;
+    }
   }
 
   async googleLogin(reqUser: any) {
