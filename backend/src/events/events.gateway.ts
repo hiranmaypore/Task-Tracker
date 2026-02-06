@@ -93,17 +93,32 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitTaskCreated(projectId: string, task: any) {
     this.server.to(`project_${projectId}`).emit('task_created', task);
+    // Also notify creator and assignee directly in case they aren't in project room
+    if (task.assignee_id) this.emitToUser(task.assignee_id, 'task_created', task);
+    if (task.creator_id) this.emitToUser(task.creator_id, 'task_created', task);
   }
 
   emitTaskUpdated(projectId: string, task: any) {
     this.server.to(`project_${projectId}`).emit('task_updated', task);
+    // Also notify creator and assignee directly
+    if (task.assignee_id) this.emitToUser(task.assignee_id, 'task_updated', task);
+    if (task.creator_id) this.emitToUser(task.creator_id, 'task_updated', task);
   }
 
-  emitTaskDeleted(projectId: string, taskId: string) {
+  emitTaskDeleted(projectId: string, taskId: string, task?: any) {
     this.server.to(`project_${projectId}`).emit('task_deleted', { id: taskId, projectId });
+    // If we have the task object, notify implicated users
+    if (task) {
+        if (task.assignee_id) this.emitToUser(task.assignee_id, 'task_deleted', { id: taskId, projectId });
+        if (task.creator_id) this.emitToUser(task.creator_id, 'task_deleted', { id: taskId, projectId });
+    }
+  }
+
+  emitToUser(userId: string, event: string, data: any) {
+    this.server.to(`user_${userId}`).emit(event, data);
   }
 
   emitNotification(userId: string, notification: any) {
-    this.server.to(`user_${userId}`).emit('notification_created', notification);
+    this.emitToUser(userId, 'notification_created', notification);
   }
 }

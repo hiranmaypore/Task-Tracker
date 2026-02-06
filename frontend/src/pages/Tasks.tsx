@@ -116,13 +116,25 @@ const Tasks = () => {
   
   // Socket Logic
   useEffect(() => {
-    if (!socket || !projectId) return;
+    if (!socket) return;
 
-    socket.emit('joinProject', { projectId });
-
+    // Join project room if available
+    if (projectId) {
+        socket.emit('joinProject', { projectId });
+    }
+    
+    // Always listen to user events (for global view or personal updates)
+    // The backend already joins the user room on connection in handleConnection
+    
     const handleTaskCreated = (newTask: Task) => {
-        if (newTask.project_id === projectId) {
-            setTasks(prev => [newTask, ...prev]);
+        // If we're in a specific project, only add if it belongs there
+        // If we're in global view, add it
+        if (!projectId || newTask.project_id === projectId) {
+            setTasks(prev => {
+                // Prevent duplicates
+                if (prev.find(t => t.id === newTask.id)) return prev;
+                return [newTask, ...prev];
+            });
             toast({ title: "New Task Created", description: newTask.title });
         }
     };
@@ -140,7 +152,9 @@ const Tasks = () => {
     socket.on('task_deleted', handleTaskDeleted);
 
     return () => {
-        socket.emit('leaveProject', { projectId });
+        if (projectId) {
+            socket.emit('leaveProject', { projectId });
+        }
         socket.off('task_created', handleTaskCreated);
         socket.off('task_updated', handleTaskUpdated);
         socket.off('task_deleted', handleTaskDeleted);
@@ -193,15 +207,15 @@ const Tasks = () => {
   // Fetch project members for assignment
   const selectedProjectId = form.watch('project_id');
   useEffect(() => {
-    if (selectedProjectId) {
-         const fetchMembers = async () => {
-             const token = localStorage.getItem('token');
-             if (token) {
-                 try {
-                    const res = await axios.get(`${API_BASE_URL}/projects/${selectedProjectId}/members`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setProjectMembers(res.data);
+      if (selectedProjectId && /^[a-f\d]{24}$/i.test(selectedProjectId)) {
+           const fetchMembers = async () => {
+               const token = localStorage.getItem('token');
+               if (token) {
+                   try {
+                      const res = await axios.get(`${API_BASE_URL}/projects/${selectedProjectId}/members`, {
+                          headers: { Authorization: `Bearer ${token}` }
+                      });
+                      setProjectMembers(res.data);
                  } catch (e) {
                      setProjectMembers([]);
                  }
@@ -221,7 +235,19 @@ const Tasks = () => {
 
     const token = localStorage.getItem('token');
     if (token) {
-         axios.patch(`${API_BASE_URL}/tasks/${updatedTask.id}`, updatedTask, {
+         // Clean the payload: Only send fields the backend expects
+         const { title, description, status, priority, due_date, project_id, assignee_id } = updatedTask;
+         const payload = {
+             title,
+             description,
+             status,
+             priority,
+             due_date,
+             project_id,
+             assignee_id: assignee_id || null // Ensure empty string is null for Prisma
+         };
+
+         axios.patch(`${API_BASE_URL}/tasks/${updatedTask.id}`, payload, {
              headers: { Authorization: `Bearer ${token}` }
          }).catch(() => {
              toast({ title: "Update failed", variant: "destructive" });
@@ -356,6 +382,7 @@ const Tasks = () => {
               const payload = { 
                   ...data, 
                   project_id: data.project_id,
+                  assignee_id: data.assignee_id || null, // Convert "" to null
                   due_date: data.due_date ? new Date(data.due_date).toISOString() : null 
               };
               const response = await axios.post(`${API_BASE_URL}/tasks`, payload, {

@@ -146,7 +146,7 @@ export class CalendarService {
       // Create calendar event object
       const event = {
         summary: task.title,
-        description: `${task.description || ''}\n\nProject: ${task.project.name}\nPriority: ${task.priority}`,
+        description: `${task.description || ''}\n\nProject: ${task.project.name}\nPriority: ${task.priority}\nStatus: ${task.status}`,
         start: {
           dateTime: task.due_date?.toISOString() || new Date().toISOString(),
           timeZone: 'Asia/Kolkata',

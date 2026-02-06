@@ -156,7 +156,9 @@ export class TasksService {
     };
 
     // Apply filters
-    if (filterDto?.project_id) {
+    const isValidObjectId = (id: string) => /^[a-f\d]{24}$/i.test(id);
+
+    if (filterDto?.project_id && isValidObjectId(filterDto.project_id)) {
       where.project_id = filterDto.project_id;
     }
 
@@ -168,7 +170,7 @@ export class TasksService {
       where.priority = filterDto.priority;
     }
 
-    if (filterDto?.assignee_id) {
+    if (filterDto?.assignee_id && isValidObjectId(filterDto.assignee_id)) {
       where.assignee_id = filterDto.assignee_id;
     }
 
@@ -211,6 +213,7 @@ export class TasksService {
   }
 
   findOne(id: string) {
+    if (!/^[a-f\d]{24}$/i.test(id)) throw new NotFoundException('Invalid task ID format');
     return this.prisma.task.findUnique({
       where: { id },
       include: { subtasks: true },
@@ -218,16 +221,24 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string) {
+    if (!/^[a-f\d]{24}$/i.test(id)) throw new NotFoundException('Invalid task ID format');
     // 1. Get old task for logging
     const oldTask = await this.prisma.task.findUnique({ where: { id } });
     if (!oldTask) throw new NotFoundException('Task not found');
 
     // 2. Perform update
+    const updateData: any = { ...updateTaskDto };
+    
+    // Convert empty strings to null for MongoDB ObjectId fields
+    if (updateData.assignee_id === "") updateData.assignee_id = null;
+    if (updateData.parent_task_id === "") updateData.parent_task_id = null;
+    if (updateData.project_id === "") delete updateData.project_id; // Don't allow clearing project_id to empty
+
     const updatedTask = await this.prisma.task.update({
       where: { id },
       data: {
-         ...updateTaskDto,
-         due_date: updateTaskDto.due_date ? new Date(updateTaskDto.due_date) : undefined
+         ...updateData,
+         due_date: updateTaskDto.due_date === null ? null : (updateTaskDto.due_date ? new Date(updateTaskDto.due_date) : undefined)
       },
       include: {
         project: true,
@@ -235,8 +246,15 @@ export class TasksService {
       }
     });
 
-    // Calendar Sync (if title, desc, or date changed and user has calendar connected)
-    if (updatedTask.due_date && (updateTaskDto.title || updateTaskDto.description || updateTaskDto.due_date || updateTaskDto.priority)) {
+    // ... (rest of update logic)
+    // Calendar Sync (if title, desc, status, priority, or date changed and user has calendar connected)
+    if (updatedTask.due_date && (
+        updateTaskDto.title || 
+        updateTaskDto.description || 
+        updateTaskDto.due_date || 
+        updateTaskDto.priority ||
+        updateTaskDto.status
+    )) {
         try {
             const user = await this.prisma.user.findUnique({
                 where: { id: userId },
@@ -311,6 +329,7 @@ export class TasksService {
   }
 
   async remove(id: string, userId: string) {
+    if (!/^[a-f\d]{24}$/i.test(id)) throw new NotFoundException('Invalid task ID format');
     console.log(`[DELETE] Starting delete for task ${id} by user ${userId}`);
     
     // First, check if task exists
@@ -356,7 +375,7 @@ export class TasksService {
     await this.activityLog.logTaskDeleted(userId, id, task.title);
 
     // Emit Event
-    this.eventsGateway.emitTaskDeleted(task.project_id, id);
+    this.eventsGateway.emitTaskDeleted(task.project_id, id, task);
 
     // Invalidate
     await this.invalidateUserCache(userId);
