@@ -34,7 +34,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       auth: {
         token: token,
       },
-      // query: { token }, // Fallback
+      transports: ['websocket'],
       autoConnect: true,
       reconnection: true,
     });

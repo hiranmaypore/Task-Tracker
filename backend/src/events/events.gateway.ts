@@ -13,7 +13,8 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: ['https://task-tracker-76bf.vercel.app', 'http://localhost:5173'],
+    credentials: true,
   },
 })
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
